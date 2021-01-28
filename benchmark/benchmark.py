@@ -560,13 +560,3 @@ def benchmark(args, vioTrackingFn, setupFn=None, teardownFn=None):
 
     if teardownFn:
         teardownFn(args, dirs.results)
-
-
-# def main(args):
-#     benchmark(args)
-#     print("Everything ran successfully! Bye!")
-
-
-# if __name__ == "__main__":
-#     args = getArgParser().parse_args()
-#     main(args)
