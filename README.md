@@ -1,8 +1,8 @@
-# vio_benchmark
+# VIO Benchmark
 
-Tools for benchmarking different Visual-Inertial Odometry solutions
+Python scripts for benchmarking different Visual-Inertial Odometry solutions.
 
-These are best used in together with other tools supporting same JSONL format defined in [json-recorder](https://github.com/AaltoVision/jsonl-recorder):
+These are best used in together with other tools supporting same JSONL format defined in [jsonl-recorder](https://github.com/AaltoVision/jsonl-recorder):
 * [u-blox C099-F9P data collection app](https://github.com/AaltoML/u-blox-capture)
 * [Realsense data collection app](https://github.com/AaltoVision/realsense-capture)
 * [Android data collection app](https://github.com/AaltoML/android-viotester)
@@ -39,4 +39,33 @@ Following example benchmark set will run each dataset in "benchmarks" array once
         {"params": "-customParam2=0.1", "name": "filterOn"}
     ]
 }
+```
+
+# combine_jsonl.py
+
+Script for combining JSONL data from multiple sources. Use `add_time_offset.py` to synchronize them first.
+
+If you store you data in following layout:
+
+```
+folder/containing/all/datasets
+                              /arcore
+                                     /data.jsonl
+                                     /info.jsonl
+                              /arkit
+                                    /data.jsonl
+                                    ...
+```
+
+You can combine data into `arcore-combined` output folder with:
+
+```
+python -m vio_benchmark.benchmark.combine_jsonl \
+    arcore \
+    -root folder/containing/all/datasets/ \
+    -output arcore-combined \
+    -arkit arkit \
+    -rtk rtkgps \
+    -realsense realsense \
+    -gps arkit
 ```

@@ -27,6 +27,12 @@ parser.add_argument("-realsense", help="Directory containing data.jsonl with Rea
 parser.add_argument("-gps", help="Directory containing data.jsonl with GPS location info")
 parser.add_argument("-output", help="Name of directory to put the combined data in. If empty, overwrites original")
 parser.add_argument("-rtk", help="RTK GPS, aligned using gpsTime and cut to start and end with frames")
+parser.add_argument("-gpstime", help="Directory containing data.jsonl with gpsTime info")
+parser.add_argument("-notrim", help="Unless this flag is set, output is trimmed based on 'frames' events", action="store_true")
+parser.add_argument("-root", help="Root directory that's prefixed in front of all given paths", default=".")
+
+
+TIME_PADDING_SECONDS = 1.0 # Add some padding before trimming data
 
 
 def noOffsetInfo(folder):
@@ -107,7 +113,7 @@ def readJSONL(outputArray, folder, filter, alignmentOffset=0, t0=0):
                 outputArray.append(entry)
 
 
-def readRTKGPS(sortedOutputArray, rtkgpsFile):
+def readRTKGPS(sortedOutputArray, rtkgpsFolder):
     gpsTimeOffets = []
     for x in sortedOutputArray:
         gps = x.get("gpsTime")
@@ -116,28 +122,39 @@ def readRTKGPS(sortedOutputArray, rtkgpsFile):
     if not gpsTimeOffets:
         raise Exception("Couldn't find GPS events to sync RTK GPS using GPS time")
     gpsTimeOffset = np.median(gpsTimeOffets) # Pick median to avoid outliers, is this smart?
-    TIME_PADDING_SECONDS = 1.0 # Pick slightly wider range of GPS locations than we have frames
-    firstFrame = next(x for x in sortedOutputArray if x.get("frames"))["time"] - TIME_PADDING_SECONDS
-    lastFrame = sortedOutputArray[next(i for i in reversed(range(len(sortedOutputArray))) if sortedOutputArray[i].get("frames"))]["time"] + TIME_PADDING_SECONDS
-    with open(rtkgpsFile) as f:
+    # firstFrame = next(x for x in sortedOutputArray if x.get("frames"))["time"] - TIME_PADDING_SECONDS
+    # lastFrame = sortedOutputArray[next(i for i in reversed(range(len(sortedOutputArray))) if sortedOutputArray[i].get("frames"))]["time"] + TIME_PADDING_SECONDS
+    with open(rtkgpsFolder + "/data.jsonl") as f:
         for line in f.readlines():
             rtkgps = json.loads(line)
             alignedTime = rtkgps["time"] + gpsTimeOffset
-            if alignedTime >= firstFrame and alignedTime <= lastFrame:
-                sortedOutputArray.append({
-                    "rtkgps": {
-                        "latitude": rtkgps["lat"],
-                        "longitude": rtkgps["lon"],
-                        "altitude": rtkgps["altitude"],
-                        "accuracy": rtkgps["accuracy"],
-                        "verticalAccuracy": rtkgps["verticalAccuracy"],
-                        "gpsTime": rtkgps["time"]
-                    },
-                    "time": alignedTime
-                })
+            # if alignedTime >= firstFrame and alignedTime <= lastFrame:
+            sortedOutputArray.append({
+                "rtkgps": {
+                    "latitude": rtkgps["lat"],
+                    "longitude": rtkgps["lon"],
+                    "altitude": rtkgps["altitude"],
+                    "accuracy": rtkgps["accuracy"],
+                    "verticalAccuracy": rtkgps["verticalAccuracy"],
+                    "gpsTime": rtkgps["time"]
+                },
+                "time": alignedTime
+            })
 
 
-def combineJSONL(mainFolder, outputFolder, folders, methods, rtkgpsFile=None):
+def trimArray(sortedOutputArray):
+    print("Trimming output")
+    firstFrame = next(x for x in sortedOutputArray if x.get("frames"))["time"] - TIME_PADDING_SECONDS
+    lastFrame = sortedOutputArray[next(i for i in reversed(range(len(sortedOutputArray))) if sortedOutputArray[i].get("frames"))]["time"] + TIME_PADDING_SECONDS
+    def filt(obj):
+        time = obj.get("time")
+        if time:
+            return time >= firstFrame and time <= lastFrame
+        return True
+    return [row for row in sortedOutputArray if filt(row)]
+
+
+def combineJSONL(mainFolder, outputFolder, folders, methods, rtkgpsFolder=None, trim=True):
     outputArray = []
     offset, t0 = readMainJSONL(outputArray, mainFolder, methods)
     for folder, method in zip(folders, methods):
@@ -145,9 +162,12 @@ def combineJSONL(mainFolder, outputFolder, folders, methods, rtkgpsFile=None):
 
     outputArray.sort(key=lambda x: x["time"])
 
-    if rtkgpsFile:
-        readRTKGPS(outputArray, rtkgpsFile)
+    if rtkgpsFolder:
+        readRTKGPS(outputArray, rtkgpsFolder)
         outputArray.sort(key=lambda x: x["time"])
+
+    if trim:
+        outputArray = trimArray(outputArray)
 
     if outputFolder:
         if os.path.exists(outputFolder):
@@ -167,29 +187,34 @@ def combineJSONL(mainFolder, outputFolder, folders, methods, rtkgpsFile=None):
 if __name__ == "__main__":
     args = parser.parse_args()
 
+    args.root = args.root + "/"
+
     methods = []
     folders = []
     if args.our:
         methods.append("output")
-        folders.append(args.our)
+        folders.append(args.root + args.our)
     if args.arkit:
         methods.append("ARKit")
-        folders.append(args.arkit)
+        folders.append(args.root + args.arkit)
     if args.arcore:
         methods.append("arcore")
-        folders.append(args.arcore)
+        folders.append(args.root + args.arcore)
     if args.arengine:
         methods.append("arengine")
-        folders.append(args.arengine)
+        folders.append(args.root + args.arengine)
     if args.groundtruth:
         methods.append("groundTruth")
-        folders.append(args.groundtruth)
+        folders.append(args.root + args.groundtruth)
     if args.realsense:
         methods.append("realsense")
-        folders.append(args.realsense)
+        folders.append(args.root + args.realsense)
     if args.gps:
         methods.append("gps")
-        folders.append(args.gps)
+        folders.append(args.root + args.gps)
+    if args.gpstime:
+        methods.append("gpsTime")
+        folders.append(args.root + args.gpstime)
 
-    combineJSONL(args.folder, args.output, folders, methods, args.rtk)
+    combineJSONL(args.root + args.folder, args.root + args.output, folders, methods, args.root + args.rtk, not args.notrim)
     print("Done!")
