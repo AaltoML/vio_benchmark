@@ -485,16 +485,17 @@ def compute_metrics(folder, casename=None, show_plot=None, z_axis=None, columns=
             if gt:
                 case["metric"] = compute_metric_set(case["out"]['txyz'], gt['datasets'][0]['data'], metric_set)
 
+                # Save numeric results as JSON.
                 os.makedirs("{}/results".format(folder), exist_ok=True)
-                with open("{}/results/{}.txt".format(folder, name), "w") as f:
-                    # Write results for all benchmarks to info folder
-                    case["out"] = read_out("{}/output/{}.csv".format(folder, name))
-                    f.write("{}: {}\n".format(name, metrics_to_string(case["metric"])))
-                    i = 1
-                    while i < len(gt['datasets']):
-                        metricsString = metrics_to_string(compute_metric_set(gt['datasets'][i]['data'], gt['datasets'][0]['data'], metric_set))
-                        f.write("{}: {}\n".format(gt['datasets'][i]['name'], metricsString))
-                        i += 1
+                with open("{}/results/{}.json".format(folder, name), "w") as f:
+                    jsonResults = { "methods": {} }
+                    jsonResults["methods"]["our"] = case["metric"]
+                    if gt["datasets"]:
+                        jsonResults["groundTruth"] = gt["datasets"][0]["name"]
+                    # Compare other methods against the same ground truth.
+                    for i in range(1, len(gt["datasets"])):
+                        jsonResults["methods"][gt["datasets"][i]["name"]] = compute_metric_set(gt["datasets"][i]["data"], gt["datasets"][0]["data"], metric_set)
+                    json.dump(jsonResults, f, indent=4, sort_keys=True)
 
                 if metricFile:
                     with open(metricFile, "a") as f: f.write("%s,%.9f\n" % (name, average_metric(case["metric"])))
