@@ -26,51 +26,41 @@ SECONDS_TO_NS = 1000 * 1000 * 1000
 TIME_OFFSET_NS = 1 * SECONDS_TO_NS
 
 
-# TODO: NO LICENSE? https://github.com/GAVLab/allan_variance
-def getRandomWalkSegment(tau,sigma):
-    m = -0.5 # slope of random walk
-    """""""""""""""""""""""""""""""""
-    " Find point where slope = -0.5 "
-    """""""""""""""""""""""""""""""""
-    randomWalk = None
+def log10(x):
+    return math.log(x, 10)
+
+
+def getRandomWalkSegment(tau, sigma):
+    M = -0.5  # slope of random walk
     i = 1
     idx = 1
     mindiff = 999
     logTau = -999
-    while (logTau<0):
-        logTau = math.log(tau[i],10)
-        logSigma = math.log(sigma[i],10)
-        prevLogTau = math.log(tau[i-1],10)
-        prevLogSigma = math.log(sigma[i-1],10)
-        slope = (logSigma-prevLogSigma)/(logTau-prevLogTau)
-        diff = abs(slope-m)
-        if (diff<mindiff):
+    while (logTau < 0):
+        logTau = log10(tau[i])
+        slope = (log10(sigma[i]) - log10(sigma[i - 1])) / (logTau - log10(tau[i - 1]))
+        diff = abs(slope - M)
+        if (diff < mindiff):
             mindiff = diff
             idx = i
         i = i + 1
-
-    """"""""""""""""""""""""""""""
-    " Project line to tau = 10^0 "
-    """"""""""""""""""""""""""""""
-    x1 = math.log(tau[idx],10)
-    y1 = math.log(sigma[idx],10)
+    x1 = log10(tau[idx])
+    y1 = log10(sigma[idx])
     x2 = 0
-    y2 = m*(x2-x1)+y1
+    y2 = M * (x2 - x1) + y1
+    return (pow(10, x1), pow(10, y1), pow(10, x2), pow(10, y2))
 
-    return (pow(10,x1),pow(10,y1),pow(10,x2),pow(10,y2))
 
-
-# TODO: NO LICENSE? https://github.com/GAVLab/allan_variance
-def getBiasInstabilityPoint(tau,sigma):
+def getBiasInstabilityPoint(tau, sigma):
     i = 1
-    while (i<tau.size):
-        if (tau[i]>1) and ((sigma[i]-sigma[i-1])>0): # only check for tau > 10^0
+    while (i < tau.size):
+        if (tau[i] > 1) and ((sigma[i] - sigma[i - 1]) > 0):  # only check for tau > 10^0
             break
         i = i + 1
-    return (tau[i],sigma[i])
+    return (tau[i], sigma[i])
 
 
-# TODO: NO LICENSE? https://github.com/GAVLab/allan_variance
+# Allan variance computed as described in https://github.com/GAVLab/allan_variance/blob/master/scripts/allan.py
 def computeNoiseRandomWalk(imu, outputFolder):
     firstTimeStamp = imu[0][0] / SECONDS_TO_NS
     lastTimeStamp = imu[len(imu) - 1][0] / SECONDS_TO_NS
@@ -83,11 +73,11 @@ def computeNoiseRandomWalk(imu, outputFolder):
     taus = [None]*numTau
     cnt = 0
     for i in np.linspace(-2.0, 5.0, num=numTau): # lags will span from 10^-2 to 10^5, log spaced
-        taus[cnt] = pow(10,i)
+        taus[cnt] = pow(10, i)
         cnt = cnt + 1
 
     N = len(imu) # number of measurement samples
-    data = np.zeros( (6,N) ) # preallocate vector of measurements
+    data = np.zeros( (6, N) ) # preallocate vector of measurements
     if isDeltaType:
         scale = sampleRate
     else:
@@ -95,7 +85,6 @@ def computeNoiseRandomWalk(imu, outputFolder):
 
     cnt = 0
     for imuSample in imu:
-    # for topic, msg, t in bag.read_messages(topics=[topic]):
         data[0,cnt] = imuSample[4] * scale
         data[1,cnt] = imuSample[5] * scale
         data[2,cnt] = imuSample[6] * scale
@@ -109,7 +98,7 @@ def computeNoiseRandomWalk(imu, outputFolder):
     figure, subplots = matplotlib.pyplot.subplots(2, 3, figsize=(10,10))
     subplots = np.ravel(subplots)
     for index in range(6):
-        (taus_used, adev, adev_err, adev_n) = allantools.oadev(data[index], data_type='freq', rate=float(sampleRate), taus=np.array(taus) )
+        (taus_used, adev, adev_err, adev_n) = allantools.oadev(data[index], data_type='freq', rate=float(sampleRate), taus=np.array(taus))
 
         randomWalkSegment = getRandomWalkSegment(taus_used,adev)
         biasInstabilityPoint = getBiasInstabilityPoint(taus_used,adev)
@@ -130,14 +119,6 @@ def computeNoiseRandomWalk(imu, outputFolder):
         elif (index == 5):
             name = 'gyroscope_z'
 
-        with open(outputFolder + "/" + name + '.csv', 'wt') as f:
-            writer = csv.writer(f)
-            writer.writerow( ('Random Walk', 'Bias Instability') )
-            writer.writerow( (randomWalk, biasInstability) )
-            writer.writerow( ('Tau', 'AllanDev', 'AllanDevError', 'AllanDevN') )
-            for i in range(taus_used.size):
-                writer.writerow( (taus_used[i],adev[i],adev_err[i],adev_n[i])  )
-
         with open(outputFolder + "/summary.txt", 'a') as f:
             summary = "{}, randomWalk: {}, biasInstability: {}".format(name, randomWalk, biasInstability)
             f.write(summary + "\n")
@@ -151,10 +132,10 @@ def computeNoiseRandomWalk(imu, outputFolder):
         plt.set_xscale('log')
 
         plt.plot(taus_used,adev)
-        plt.plot([randomWalkSegment[0],randomWalkSegment[2]],
-                 [randomWalkSegment[1],randomWalkSegment[3]],'k--')
-        plt.plot(1,randomWalk,'rx',markeredgewidth=2.5,markersize=14.0)
-        plt.plot(biasInstabilityPoint[0],biasInstabilityPoint[1],'ro')
+        plt.plot([randomWalkSegment[0], randomWalkSegment[2]],
+                 [randomWalkSegment[1], randomWalkSegment[3]], 'k--')
+        plt.plot(1, randomWalk, 'rx', markeredgewidth=2.5, markersize=14.0)
+        plt.plot(biasInstabilityPoint[0], biasInstabilityPoint[1], 'ro')
 
         plt.grid(True, which="both")
         plt.title.set_text(name)
