@@ -103,15 +103,21 @@ def convert(datasetOut):
     for filename in os.listdir(dir0):
         timestamps.append(int(os.path.splitext(filename)[0]) / TO_SECONDS)
 
+    # The starting time is very large, shift timestamps to around zero to reduce floating point
+    # accuracy issues.
+    timestamps = sorted(timestamps)
+    t0 = timestamps[0]
+
     output = []
     number = 0
-    for timestamp in sorted(timestamps):
+    for timestamp in timestamps:
+        t = timestamp - t0
         x = {
             "number": number,
-            "time": timestamp,
+            "time": t,
             "frames": [
-                {"cameraInd": 0, "cameraParameters": parameters[0], "time": timestamp},
-                {"cameraInd": 1, "cameraParameters": parameters[1], "time": timestamp},
+                {"cameraInd": 0, "cameraParameters": parameters[0], "time": t},
+                {"cameraInd": 1, "cameraParameters": parameters[1], "time": t},
             ],
         }
         output.append(x)
@@ -123,7 +129,7 @@ def convert(datasetOut):
         csvreader = csv.reader(csvfile, delimiter=',')
         next(csvreader) # Skip header
         for row in csvreader:
-            timestamp = int(row[0]) / TO_SECONDS
+            timestamp = int(row[0]) / TO_SECONDS - t0
             output.append({
                 "sensor": {
                     "type": "gyroscope",
@@ -145,7 +151,7 @@ def convert(datasetOut):
         csvreader = csv.reader(csvfile, delimiter=',')
         next(csvreader) # Skip header
         for row in csvreader:
-            timestamp = int(row[0]) / TO_SECONDS
+            timestamp = int(row[0]) / TO_SECONDS - t0
             output.append({
                 "groundTruth": {
                     "position": {
