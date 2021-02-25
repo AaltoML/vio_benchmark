@@ -253,7 +253,7 @@ def agg_metrics(metrics):
 
 
 def read_gt(fn):
-    d = read_csv(fn)
+    d = np.genfromtxt(fn, delimiter=',')
     txyz = np.hstack([d[:,i][:,np.newaxis] for i in [0,1,3,2]])
     txyz[:,1] = -txyz[:,1]
     return {"datasets": [{"name": "groundTruth", "data": txyz}]}
