@@ -256,7 +256,7 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
     caseDir = benchmark.dir
     caseName = benchmark.name
     jsonlFile = caseDir + "/data.jsonl"
-    outputFile = "{}/{}.csv".format(dirs.out, caseName)
+    outputFile = "{}/{}.jsonl".format(dirs.out, caseName)
     slamMapFile = "{}/{}.csv".format(dirs.slamMaps, caseName)
     gtCopy = "{}/{}.csv".format(dirs.gt, caseName)
     gtJson = "{}/{}.json".format(dirs.gt, caseName)

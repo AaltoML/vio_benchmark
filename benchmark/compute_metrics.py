@@ -251,10 +251,9 @@ def agg_metrics(metrics):
         result[x] = np.mean(list(map(lambda i: i[x], metrics)))
     return result
 
-read_csv = lambda fn: np.genfromtxt(fn, delimiter=',')
 
 def read_gt(fn):
-    d = read_csv(fn)
+    d = np.genfromtxt(fn, delimiter=',')
     txyz = np.hstack([d[:,i][:,np.newaxis] for i in [0,1,3,2]])
     txyz[:,1] = -txyz[:,1]
     return {"datasets": [{"name": "groundTruth", "data": txyz}]}
@@ -283,23 +282,29 @@ def read_gt_json(fn, comparisonList):
 
 
 def read_out(fn):
-    d = read_csv(fn)
-    txyz = np.hstack([d[:,i:(i+1)] for i in [0,2,3,4]])
-    rest = d[:,16:]
     bias_norm = lambda x: np.sqrt(np.sum(x**2, axis=1))
-    if d.shape[1] >= 26:
-        bga = rest[:,:3]
-        baa = rest[:,3:6]
-        bat = rest[:,6:9]
-        stat = rest[:,9]
-        return {
-            'txyz': txyz,
-            'BGA': bias_norm(bga),
-            'BAA': bias_norm(baa),
-            'BAT': bias_norm(bat - 1.0),
-            'stationary': stat
-        }
-    return { 'txyz': txyz }
+    to_arr = lambda obj: [obj["x"], obj["y"], obj["z"]]
+    txyz = []
+    bga = []
+    baa = []
+    bat = []
+    stat = []
+    with open(fn) as f:
+        for line in f.readlines():
+            row = json.loads(line)
+            txyz.append([row["time"], row["position"]["x"], row["position"]["y"], row["position"]["z"]])
+            stat.append(row["stationary"])
+            if (row["mean"]):
+                bga.append(to_arr(row["mean"]["bga"]))
+                baa.append(to_arr(row["mean"]["baa"]))
+                bat.append(to_arr(row["mean"]["bat"]))
+    return {
+        'txyz': np.array(txyz),
+        'BGA': bias_norm(np.array(bga)) if bga else 0.0,
+        'BAA': bias_norm(np.array(baa)) if baa else 0.0,
+        'BAT': bias_norm(np.array(bat) - 1.0) if bat else 0.0,
+        'stationary': np.array(stat)
+    }
 
 
 def getHeight(dataset, ax):
@@ -481,7 +486,7 @@ def compute_metrics(folder, casename=None, show_plot=None, z_axis=None, columns=
         # Add output and gt comparison metric to each benchmark case
         for case in benchmarkSet["benchmarks"]:
             name = case["caseName"]
-            case["out"] = read_out("{}/output/{}.csv".format(folder, name))
+            case["out"] = read_out("{}/output/{}.jsonl".format(folder, name))
             if gt:
                 case["metric"] = compute_metric_set(case["out"]['txyz'], gt['datasets'][0]['data'], metric_set)
 
