@@ -293,8 +293,8 @@ def read_out(fn):
         for line in f.readlines():
             row = json.loads(line)
             txyz.append([row["time"], row["position"]["x"], row["position"]["y"], row["position"]["z"]])
-            stat.append(row["stationary"])
-            if (row["mean"]):
+            stat.append(row.get("stationary", False))
+            if (row.get("mean")):
                 bga.append(to_arr(row["mean"]["bga"]))
                 baa.append(to_arr(row["mean"]["baa"]))
                 bat.append(to_arr(row["mean"]["bat"]))
