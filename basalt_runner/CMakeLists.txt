@@ -246,7 +246,7 @@ message(STATUS "Found OpenCV_LIBS: ${OpenCV_LIBS}")
 
 
 add_subdirectory(basalt-mirror/thirdparty)
-add_subdirectory(jsonl-recorder)
+add_subdirectory(../jsonl-recorder jsonl-recorder)
 
 include_directories(basalt-mirror/thirdparty/basalt-headers/thirdparty/Sophus)
 include_directories(basalt-mirror/thirdparty/basalt-headers/thirdparty/cereal/include)
