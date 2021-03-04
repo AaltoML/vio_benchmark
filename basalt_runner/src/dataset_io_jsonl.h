@@ -72,6 +72,7 @@ class JsonlVioDataset : public VioDataset {
 
   std::string path;
 
+  bool videoInPngSeries; // When true, assumes video is stored in video/ folder as .png images
   std::string cam0;
   std::string cam1;
 
@@ -112,20 +113,22 @@ class JsonlVioDataset : public VioDataset {
     return gt_pose_data;
   }
 
-const Eigen::aligned_vector<ImuData::Ptr> &get_imu_data() const {
-    return imu_data;
-}
+  const Eigen::aligned_vector<ImuData::Ptr> &get_imu_data() const {
+      return imu_data;
+  }
 
   int64_t get_mocap_to_imu_offset_ns() const { return mocap_to_imu_offset_ns; }
 
-
+  size_t requestedImageIndex = 0;
   std::vector<ImageData> get_image_data(int64_t t_ns) {
     // TODO: hack, ignoring t_ns and just giving next frame from video
-    (void)t_ns;
+    int64_t currentFrame = image_timestamps[requestedImageIndex++];
+    (void)currentFrame;
+    assert(t_ns == currentFrame && "get_image_data() must only be called once for each frame!");
 
     std::vector<ImageData> res(num_cams);
 
-    if (videoCaptures.size() == 0) {
+    if (!videoInPngSeries && videoCaptures.size() == 0) {
       videoCaptures.push_back(cv::VideoCapture(cam0));
       assert(videoCaptures[0].isOpened() && "Failed to open cam0");
       if (!cam1.empty()) {
@@ -136,7 +139,14 @@ const Eigen::aligned_vector<ImuData::Ptr> &get_imu_data() const {
 
     cv::Mat img;
     for (size_t i = 0; i < num_cams; i++) {
-      videoCaptures[i].read(img);
+      if (videoInPngSeries) {
+        std::string full_image_path =
+          joinUnixPath(path, (i == 0 ? "video/" : "video2/") + std::to_string(t_ns) + ".png");
+        assert(fs::exists(full_image_path) && "Image missing!");
+        img = cv::imread(full_image_path, cv::IMREAD_UNCHANGED);
+      } else {
+        videoCaptures[i].read(img);
+      }
 
       if (img.type() == CV_8UC1) {
         res[i].img.reset(new ManagedImage<uint16_t>(img.cols, img.rows));
@@ -188,6 +198,10 @@ const Eigen::aligned_vector<ImuData::Ptr> &get_imu_data() const {
 
 class JsonlIO : public DatasetIoInterface {
  public:
+  bool allowImages;
+
+  JsonlIO(bool allowImages) : allowImages(allowImages) {}
+
   void read(const std::string &path) {
 
     if (!fs::exists(path))
@@ -195,11 +209,19 @@ class JsonlIO : public DatasetIoInterface {
 
     data.reset(new JsonlVioDataset);
 
-    data->cam0 = findVideoSuffix(joinUnixPath(path , "data"));
-    data->cam1 = findVideoSuffix(joinUnixPath(path , "data2"));
-    if (data->cam0.empty()) assert(false && "No video found");
+    if (allowImages && fs::exists(joinUnixPath(path , "video"))) {
+      std::cout << "Using png images as video " << std::endl;
+      data->videoInPngSeries = true;
+      data->num_cams = 1;
+      if (fs::exists(joinUnixPath(path , "video2")))
+        data->num_cams = 2;
+    } else {
+      data->cam0 = findVideoSuffix(joinUnixPath(path , "data"));
+      data->cam1 = findVideoSuffix(joinUnixPath(path , "data2"));
+      if (data->cam0.empty()) assert(false && "No video found");
+      data->num_cams = data->cam1.empty() ? 1 : 2;
+    }
 
-    data->num_cams = data->cam1.empty() ? 1 : 2;
     data->path = path;
 
     JsonlReader reader;

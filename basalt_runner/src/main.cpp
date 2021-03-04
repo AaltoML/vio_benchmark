@@ -228,22 +228,26 @@ void feed_images() {
 }
 
 void feed_imu(std::string inputType) {
+  // std::ofstream os("imu_samples.txt");
   if (inputType == "euroc") {
     for (size_t i = 0; i < vio_dataset->get_gyro_data().size(); i++) {
       basalt::ImuData::Ptr imu(new basalt::ImuData);
       imu->t_ns = vio_dataset->get_gyro_data()[i].timestamp_ns;
       imu->accel = vio_dataset->get_accel_data()[i].data;
       imu->gyro = vio_dataset->get_gyro_data()[i].data;
+      // os << std::setprecision(18) << imu->t_ns << imu->accel << imu->gyro << std::endl;
       vio->imu_data_queue.push(imu);
     }
   } else {
     basalt::JsonlVioDataset* jsonlDataSet = dynamic_cast<basalt::JsonlVioDataset*>(vio_dataset.get());
     for (size_t i = 0; i < jsonlDataSet->get_imu_data().size(); i++) {
       basalt::ImuData::Ptr imu = jsonlDataSet->get_imu_data()[i];
+      // os << std::setprecision(18) << imu->t_ns << imu->accel << imu->gyro << std::endl;
       vio->imu_data_queue.push(imu);
     }
   }
   vio->imu_data_queue.push(nullptr);
+  // os.close();
 }
 
 int main(int argc, char** argv) {
@@ -255,6 +259,7 @@ int main(int argc, char** argv) {
   std::string result_path;
   std::string trajectory_fmt;
   std::string input_type;
+  bool use_png = false;
   int num_threads = 0;
   bool use_imu = true;
 
@@ -270,6 +275,7 @@ int main(int argc, char** argv) {
   app.add_option("--marg-data", marg_data_path,
                  "Path to folder where marginalization data will be stored.");
 
+  app.add_option("--use-png", use_png, "Allows usage of PNG images as video if they exist under video/ folder");
   app.add_option("--input-type", input_type,
                  "Input data format: jsonl, euroc");
 
@@ -320,7 +326,7 @@ int main(int argc, char** argv) {
     basalt::DatasetIoInterfacePtr dataset_io =
       input_type == "euroc"
       ? basalt::DatasetIoFactory::getDatasetIo("euroc")
-      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO);
+      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png));
 
     dataset_io->read(dataset_path);
 
