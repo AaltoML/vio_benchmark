@@ -61,9 +61,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dataset_io_jsonl.h"
 #include <nlohmann/json.hpp>
 
-void load_data(const std::string& calib_path);
-void saveTrajectoryButton();
-
 // Visualization variables
 // std::unordered_map<int64_t, basalt::VioVisualizationData::Ptr> vis_map;
 
@@ -93,6 +90,43 @@ basalt::VioDatasetPtr vio_dataset;
 basalt::VioConfig vio_config;
 basalt::OpticalFlowBase::Ptr opt_flow_ptr;
 basalt::VioEstimatorBase::Ptr vio;
+
+void load_calibration(std::string calib_path) {
+  using json = nlohmann::json;
+  std::ifstream ifs(calib_path);
+  json config = json::parse(ifs);
+  auto cameras = config["cameras"].get<json>();
+  for (auto it = cameras.begin(); it != cameras.end(); ++it) {
+    json &camera = *it;
+    if (camera.find("imuToCamera") != camera.end()) {
+      Eigen::Matrix4d imuToCamera;
+      for (int r = 0; r < 4; r++)
+        for (int c = 0; c < 4; c++)
+          imuToCamera(r, c) = camera["imuToCamera"][r][c].get<double>();
+      calib.T_i_c.push_back(Sophus::SE3<double>(imuToCamera));
+    }
+    if (camera.find("models") != camera.end()) {
+      auto models = camera["models"].get<json>();
+      for (auto mit = models.begin(); mit != models.end(); ++mit) {
+        auto &model = *mit;
+        std::string distortionModel = model["distortionModel"].get<std::string>();
+        if (distortionModel == "ds") {
+          Eigen::Matrix<double, 6, 1> params; // fx, fy, cx, cy, xi, alpha
+          params <<
+            model["focalLengthX"].get<double>(),
+            model["focalLengthY"].get<double>(),
+            model["principalPointX"].get<double>(),
+            model["principalPointY"].get<double>(),
+            model["xi"].get<double>(),
+            model["alpha"].get<double>();
+          basalt::GenericCamera<double> genCamera;
+          genCamera.variant = basalt::DoubleSphereCamera(params);
+          calib.intrinsics.push_back(genCamera);
+        }
+      }
+    }
+  }
+}
 
 // Feed functions
 void feed_images() {
@@ -198,7 +232,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  load_data(cam_calib_path);
+  load_calibration(cam_calib_path);
 
   {
     basalt::DatasetIoInterfacePtr dataset_io = basalt::DatasetIoInterfacePtr(new basalt::JsonlIO);
@@ -353,76 +387,4 @@ int main(int argc, char** argv) {
   }
 
   return 0;
-}
-
-void load_data(const std::string& calib_path) {
-  std::ifstream os(calib_path, std::ios::binary);
-
-  if (os.is_open()) {
-    cereal::JSONInputArchive archive(os);
-    archive(calib);
-    std::cout << "Loaded camera with " << calib.intrinsics.size() << " cameras"
-              << std::endl;
-
-  } else {
-    std::cerr << "could not load camera calibration " << calib_path
-              << std::endl;
-    std::abort();
-  }
-}
-
-void saveTrajectoryButton() {
-  if (false) {
-    std::ofstream os("trajectory.txt");
-
-    os << "# timestamp tx ty tz qx qy qz qw" << std::endl;
-
-    for (size_t i = 0; i < vio_t_ns.size(); i++) {
-      const Sophus::SE3d& pose = vio_T_w_i[i];
-      os << std::scientific << std::setprecision(18) << vio_t_ns[i] * 1e-9
-         << " " << pose.translation().x() << " " << pose.translation().y()
-         << " " << pose.translation().z() << " " << pose.unit_quaternion().x()
-         << " " << pose.unit_quaternion().y() << " "
-         << pose.unit_quaternion().z() << " " << pose.unit_quaternion().w()
-         << std::endl;
-    }
-
-    os.close();
-
-    std::cout
-        << "Saved trajectory in TUM RGB-D Dataset format in trajectory.txt"
-        << std::endl;
-  } else if (true) {
-    std::ofstream os("trajectory.csv");
-
-    os << "#timestamp [ns],p_RS_R_x [m],p_RS_R_y [m],p_RS_R_z [m],q_RS_w "
-          "[],q_RS_x [],q_RS_y [],q_RS_z []"
-       << std::endl;
-
-    for (size_t i = 0; i < vio_t_ns.size(); i++) {
-      const Sophus::SE3d& pose = vio_T_w_i[i];
-      os << std::scientific << std::setprecision(18) << vio_t_ns[i] << ","
-         << pose.translation().x() << "," << pose.translation().y() << ","
-         << pose.translation().z() << "," << pose.unit_quaternion().w() << ","
-         << pose.unit_quaternion().x() << "," << pose.unit_quaternion().y()
-         << "," << pose.unit_quaternion().z() << std::endl;
-    }
-
-    std::cout << "Saved trajectory in Euroc Dataset format in trajectory.csv"
-              << std::endl;
-  } else {
-    std::ofstream os("trajectory_kitti.txt");
-
-    for (size_t i = 0; i < vio_t_ns.size(); i++) {
-      Eigen::Matrix<double, 3, 4> mat = vio_T_w_i[i].matrix3x4();
-      os << std::scientific << std::setprecision(12) << mat.row(0) << " "
-         << mat.row(1) << " " << mat.row(2) << " " << std::endl;
-    }
-
-    os.close();
-
-    std::cout
-        << "Saved trajectory in KITTI Dataset format in trajectory_kitti.txt"
-        << std::endl;
-  }
 }
