@@ -17,7 +17,6 @@ public:
         double z;
     };
 
-    // TODO: Synchronizing this would be enough to make this thread safe if each addLeader/Follower is only called from their own threads
     void process() {
         if (leaderSamples.empty() || followerSamples.size() < 2) return;
         while(!leaderSamples.empty() && leaderSamples.back().time < followerSamples.back().time) {

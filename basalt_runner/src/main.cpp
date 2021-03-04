@@ -109,8 +109,9 @@ void load_calibration(std::string calib_path) {
       auto models = camera["models"].get<json>();
       for (auto mit = models.begin(); mit != models.end(); ++mit) {
         auto &model = *mit;
-        std::string distortionModel = model["distortionModel"].get<std::string>();
-        if (distortionModel == "ds") {
+        std::string name = model["name"].get<std::string>();
+        // TODO: Add missing camera models
+        if (name == "ds") {
           Eigen::Matrix<double, 6, 1> params; // fx, fy, cx, cy, xi, alpha
           params <<
             model["focalLengthX"].get<double>(),
@@ -125,6 +126,76 @@ void load_calibration(std::string calib_path) {
         }
       }
     }
+    if (camera.find("vignette") != camera.end()) {
+       // TODO: These numbers shouldn't matter with vignette?
+      basalt::RdSpline<1, 4, double> vignette(50000000000L, 0);
+      auto values = camera["vignette"].get<json>();
+      for (auto vit = values.begin(); vit != values.end(); ++vit) {
+        Eigen::Matrix<double, 1, 1> m;
+        m(0) = (*vit).get<double>();
+        vignette.knots_push_back(m);
+      }
+      calib.vignette.push_back(vignette);
+    }
+  }
+
+  if (config.find("gyroscope") != config.end()) {
+    auto gyro = config["gyroscope"].get<json>();
+
+    if (gyro.find("updateRate") != gyro.end())
+      calib.imu_update_rate = gyro["updateRate"].get<double>();
+
+    if (gyro.find("calibrationBias") != gyro.end())
+      for (int i = 0; i < 12; i++)
+        calib.calib_gyro_bias.getParam()[i] = gyro["calibrationBias"][i].get<double>();
+
+    if (gyro.find("biasStd") != gyro.end())
+          for (int i = 0; i < 3; i++)
+            calib.gyro_bias_std(i) = gyro["biasStd"][i].get<double>();
+
+    if (gyro.find("noiseStd") != gyro.end())
+          for (int i = 0; i < 3; i++)
+            calib.gyro_noise_std(i) = gyro["noiseStd"][i].get<double>();
+  }
+
+  if (config.find("accelerometer") != config.end()) {
+    auto acc = config["accelerometer"].get<json>();
+
+    if (acc.find("calibrationBias") != acc.end())
+      for (int i = 0; i < 9; i++)
+        calib.calib_accel_bias.getParam()[i] = acc["calibrationBias"][i].get<double>();
+
+    if (acc.find("biasStd") != acc.end())
+          for (int i = 0; i < 3; i++)
+            calib.accel_bias_std(i) = acc["biasStd"][i].get<double>();
+
+    if (acc.find("noiseStd") != acc.end())
+          for (int i = 0; i < 3; i++)
+            calib.accel_noise_std(i) = acc["noiseStd"][i].get<double>();
+  }
+
+  // std::ofstream os("./settings_test.json");
+  // {
+  //   cereal::JSONOutputArchive archive(os);
+  //   archive(calib);
+  // }
+  // os.close();
+}
+
+void load_calibration_basalt(const std::string& calib_path) {
+  std::ifstream os(calib_path, std::ios::binary);
+  if (os.is_open()) {
+    cereal::JSONInputArchive archive(os);
+    archive(calib);
+    for (size_t i = 0; i < calib.T_i_c.size(); i++) {
+      std::cout << std::setprecision(18) << "T_i_c " << calib.T_i_c[i].matrix() << std::endl;
+    }
+    std::cout << "Loaded camera with " << calib.intrinsics.size() << " cameras"
+              << std::endl;
+  } else {
+    std::cerr << "could not load camera calibration " << calib_path
+              << std::endl;
+    std::abort();
   }
 }
 
@@ -156,17 +227,21 @@ void feed_images() {
   std::cout << "Finished input_data thread " << std::endl;
 }
 
-void feed_imu() {
-
-  basalt::JsonlVioDataset* jsonlDataSet = dynamic_cast<basalt::JsonlVioDataset*>(vio_dataset.get());
-
-  for (size_t i = 0; i < jsonlDataSet->get_imu_data().size(); i++) {
-    // basalt::ImuData::Ptr data(new basalt::ImuData);
-    // data->t_ns = vio_dataset->get_gyro_data()[i].timestamp_ns;
-    // data->accel = vio_dataset->get_accel_data()[i].data;
-    // data->gyro = vio_dataset->get_gyro_data()[i].data;
-    basalt::ImuData::Ptr imu = jsonlDataSet->get_imu_data()[i];
-    vio->imu_data_queue.push(imu);
+void feed_imu(std::string inputType) {
+  if (inputType == "euroc") {
+    for (size_t i = 0; i < vio_dataset->get_gyro_data().size(); i++) {
+      basalt::ImuData::Ptr imu(new basalt::ImuData);
+      imu->t_ns = vio_dataset->get_gyro_data()[i].timestamp_ns;
+      imu->accel = vio_dataset->get_accel_data()[i].data;
+      imu->gyro = vio_dataset->get_gyro_data()[i].data;
+      vio->imu_data_queue.push(imu);
+    }
+  } else {
+    basalt::JsonlVioDataset* jsonlDataSet = dynamic_cast<basalt::JsonlVioDataset*>(vio_dataset.get());
+    for (size_t i = 0; i < jsonlDataSet->get_imu_data().size(); i++) {
+      basalt::ImuData::Ptr imu = jsonlDataSet->get_imu_data()[i];
+      vio->imu_data_queue.push(imu);
+    }
   }
   vio->imu_data_queue.push(nullptr);
 }
@@ -179,6 +254,7 @@ int main(int argc, char** argv) {
   std::string config_path;
   std::string result_path;
   std::string trajectory_fmt;
+  std::string input_type;
   int num_threads = 0;
   bool use_imu = true;
 
@@ -193,6 +269,9 @@ int main(int argc, char** argv) {
 
   app.add_option("--marg-data", marg_data_path,
                  "Path to folder where marginalization data will be stored.");
+
+  app.add_option("--input-type", input_type,
+                 "Input data format: jsonl, euroc");
 
   app.add_option("--print-queue", print_queue, "Print queue.");
   app.add_option("--config-path", config_path, "Path to config file.");
@@ -232,10 +311,16 @@ int main(int argc, char** argv) {
     }
   }
 
-  load_calibration(cam_calib_path);
+  if (input_type == "euroc")
+    load_calibration_basalt(cam_calib_path);
+  else
+    load_calibration(cam_calib_path);
 
   {
-    basalt::DatasetIoInterfacePtr dataset_io = basalt::DatasetIoInterfacePtr(new basalt::JsonlIO);
+    basalt::DatasetIoInterfacePtr dataset_io =
+      input_type == "euroc"
+      ? basalt::DatasetIoFactory::getDatasetIo("euroc")
+      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO);
 
     dataset_io->read(dataset_path);
 
@@ -282,7 +367,7 @@ int main(int argc, char** argv) {
   }
 
   std::thread t1(&feed_images);
-  std::thread t2(&feed_imu);
+  std::thread t2(&feed_imu, input_type);
 
   std::shared_ptr<std::thread> t3;
 
