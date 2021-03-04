@@ -42,6 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <opencv2/highgui/highgui.hpp>
 
 #include "jsonl_reader.hpp"
+#include "imu_sync.hpp"
 
 constexpr int64_t SECONDS_TO_NS = 1e9;
 
@@ -79,6 +80,7 @@ class JsonlVioDataset : public VioDataset {
 
   Eigen::aligned_vector<AccelData> accel_data;
   Eigen::aligned_vector<GyroData> gyro_data;
+  Eigen::aligned_vector<ImuData::Ptr> imu_data;
 
   std::vector<int64_t> gt_timestamps;  // ordered gt timestamps
   Eigen::aligned_vector<Sophus::SE3d>
@@ -109,6 +111,10 @@ class JsonlVioDataset : public VioDataset {
   const Eigen::aligned_vector<Sophus::SE3d> &get_gt_pose_data() const {
     return gt_pose_data;
   }
+
+const Eigen::aligned_vector<ImuData::Ptr> &get_imu_data() const {
+    return imu_data;
+}
 
   int64_t get_mocap_to_imu_offset_ns() const { return mocap_to_imu_offset_ns; }
 
@@ -197,20 +203,34 @@ class JsonlIO : public DatasetIoInterface {
     data->path = path;
 
     JsonlReader reader;
+    ImuSync imuSync;
 
-    // TODO: Is syncing gyro & acc required or not?
-    reader.onAccelerometer = [this](double time, double x, double y, double z) {
+    imuSync.onSyncedLeader = [this](
+      double time,
+      double gx, double gy, double gz,
+      double ax, double ay, double az) {
       int64_t t_ns = time * SECONDS_TO_NS;
-      this->data->accel_data.emplace_back();
-      this->data->accel_data.back().timestamp_ns = t_ns;
-      this->data->accel_data.back().data = Eigen::Vector3d(x, y, z);
+      basalt::ImuData::Ptr imu(new basalt::ImuData);
+      imu->t_ns = t_ns;
+      imu->accel = Eigen::Vector3d(ax, ay, az);
+      imu->gyro = Eigen::Vector3d(gx, gy, gz);
+      this->data->imu_data.push_back(imu);
     };
 
-    reader.onGyroscope = [this](double time, double x, double y, double z) {
-      int64_t t_ns = time * SECONDS_TO_NS;
-      this->data->gyro_data.emplace_back();
-      this->data->gyro_data.back().timestamp_ns = t_ns;
-      this->data->gyro_data.back().data = Eigen::Vector3d(x, y, z);
+    reader.onAccelerometer = [&imuSync](double time, double x, double y, double z) {
+      imuSync.addFollower(time, x, y, z);
+      // int64_t t_ns = time * SECONDS_TO_NS;
+      // this->data->accel_data.emplace_back();
+      // this->data->accel_data.back().timestamp_ns = t_ns;
+      // this->data->accel_data.back().data = Eigen::Vector3d(x, y, z);
+    };
+
+    reader.onGyroscope = [&imuSync](double time, double x, double y, double z) {
+      imuSync.addLeader(time, x, y, z);
+      // int64_t t_ns = time * SECONDS_TO_NS;
+      // this->data->gyro_data.emplace_back();
+      // this->data->gyro_data.back().timestamp_ns = t_ns;
+      // this->data->gyro_data.back().data = Eigen::Vector3d(x, y, z);
     };
 
     reader.onFrames = [this](std::vector<JsonlReader::FrameParameters> frames) {
@@ -219,8 +239,7 @@ class JsonlIO : public DatasetIoInterface {
       this->data->image_timestamps.emplace_back(t_ns);
     };
 
-    data->accel_data.clear();
-    data->gyro_data.clear();
+    data->imu_data.clear();
     data->image_timestamps.clear();
 
     // std::cout << "Reading: " << path << std::endl;

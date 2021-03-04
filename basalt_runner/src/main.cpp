@@ -123,16 +123,16 @@ void feed_images() {
 }
 
 void feed_imu() {
-  for (size_t i = 0; i < vio_dataset->get_gyro_data().size(); i++) {
-    basalt::ImuData::Ptr data(new basalt::ImuData);
-    data->t_ns = vio_dataset->get_gyro_data()[i].timestamp_ns;
 
-    data->accel = vio_dataset->get_accel_data()[i].data;
-    data->gyro = vio_dataset->get_gyro_data()[i].data;
+  basalt::JsonlVioDataset* jsonlDataSet = dynamic_cast<basalt::JsonlVioDataset*>(vio_dataset.get());
 
-    // std::cout << "IMU sample " << data->accel << data->gyro << std::endl;
-
-    vio->imu_data_queue.push(data);
+  for (size_t i = 0; i < jsonlDataSet->get_imu_data().size(); i++) {
+    // basalt::ImuData::Ptr data(new basalt::ImuData);
+    // data->t_ns = vio_dataset->get_gyro_data()[i].timestamp_ns;
+    // data->accel = vio_dataset->get_accel_data()[i].data;
+    // data->gyro = vio_dataset->get_gyro_data()[i].data;
+    basalt::ImuData::Ptr imu = jsonlDataSet->get_imu_data()[i];
+    vio->imu_data_queue.push(imu);
   }
   vio->imu_data_queue.push(nullptr);
 }
