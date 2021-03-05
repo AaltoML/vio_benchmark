@@ -17,11 +17,13 @@ def main():
         pass
 
     def vioTrackingFn(args, benchmark, outputDir, outputFile, slamMap):
+        logFile = "{}/{}/{}.txt".format(outputDir, "logs", benchmark.name)
         subprocess.check_call("./target/basalt_runner"
                 + " --dataset-path " + benchmark.dir
                 + " --save-trajectory " + outputFile
                 + " --config-path " + args.config
-                + " --cam-calib " + args.calib, shell=True)
+                + " --cam-calib " + args.calib
+                + " > " + logFile + " 2>&1", shell=True)
 
     benchmark(args, vioTrackingFn, setupFn, tearDownFn)
 
