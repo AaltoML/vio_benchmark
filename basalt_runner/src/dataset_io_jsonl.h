@@ -37,6 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <iostream>
 #include <basalt/io/dataset_io.h>
+#include <basalt/imu/imu_types.h>
 #include <basalt/utils/filesystem.h>
 
 #include <opencv2/highgui/highgui.hpp>
@@ -121,11 +122,11 @@ class JsonlVioDataset : public VioDataset {
 
   size_t requestedImageIndex = 0;
   std::vector<ImageData> get_image_data(int64_t t_ns) {
-    // TODO: hack, ignoring t_ns and just giving next frame from video
-    int64_t currentFrame = image_timestamps[requestedImageIndex++];
-    (void)currentFrame;
-    assert(t_ns == currentFrame && "get_image_data() must only be called once for each frame!");
-
+    if (videoInPngSeries) {
+      int64_t currentFrame = image_timestamps[requestedImageIndex++];
+      (void)currentFrame;
+      assert(t_ns == currentFrame && "get_image_data() must only be called once for each frame in video mode!");
+    }
     std::vector<ImageData> res(num_cams);
 
     if (!videoInPngSeries && videoCaptures.size() == 0) {
