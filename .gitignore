@@ -129,3 +129,4 @@ dmypy.json
 .pyre/
 settings.json
 basalt_runner/output
+basalt_runner/data

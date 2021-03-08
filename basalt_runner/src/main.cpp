@@ -105,6 +105,21 @@ void load_calibration(std::string calib_path) {
           imuToCamera(r, c) = camera["imuToCamera"][r][c].get<double>();
       calib.T_i_c.push_back(Sophus::SE3<double>(imuToCamera));
     }
+    if (camera.find("imuToCameraQuat") != camera.end()) {
+      auto imu = camera["imuToCameraQuat"].get<json>();
+      Eigen::Quaternion<double> quat(
+          imu["qw"].get<double>(),
+          imu["qx"].get<double>(),
+          imu["qy"].get<double>(),
+          imu["qz"].get<double>()
+      );
+      Sophus::Vector3<double> trans;
+      trans <<
+          imu["px"].get<double>(),
+          imu["py"].get<double>(),
+          imu["pz"].get<double>();
+      calib.T_i_c.push_back(Sophus::SE3<double>(quat, trans));
+    }
     if (camera.find("models") != camera.end()) {
       auto models = camera["models"].get<json>();
       for (auto mit = models.begin(); mit != models.end(); ++mit) {
