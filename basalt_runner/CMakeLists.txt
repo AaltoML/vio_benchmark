@@ -256,30 +256,41 @@ include_directories(basalt-mirror/thirdparty/fast/include)
 
 include_directories(basalt-mirror/include)
 
-find_library(basalt_LIB basalt "${CMAKE_SOURCE_DIR}/basalt-mirror/build")
-# TODO: fix this
-# add_library(basalt SHARED
-#   basalt-mirror/src/io/dataset_io.cpp
-#   basalt-mirror/src/io/marg_data_io.cpp
-#   basalt-mirror/src/calibration/aprilgrid.cpp
-#   basalt-mirror/src/calibration/calibraiton_helper.cpp
-#   basalt-mirror/src/calibration/vignette.cpp
-#   basalt-mirror/src/utils/vio_config.cpp
-#   basalt-mirror/src/optical_flow/optical_flow.cpp
-#   basalt-mirror/src/vi_estimator/keypoint_vio.cpp
-#   basalt-mirror/src/vi_estimator/keypoint_vio_linearize.cpp
-#   basalt-mirror/src/vi_estimator/keypoint_vo.cpp
-#   basalt-mirror/src/vi_estimator/vio_estimator.cpp
-#   basalt-mirror/src/vi_estimator/ba_base.cpp
-#   basalt-mirror/src/vi_estimator/nfr_mapper.cpp
-#   basalt-mirror/src/vi_estimator/landmark_database.cpp
-#   basalt-mirror/src/utils/keypoints.cpp)
-# target_link_libraries(basalt PUBLIC ${TBB_LIBRARIES} ${STD_CXX_FS} ${OpenCV_LIBS} PRIVATE rosbag apriltag opengv)
+# Modified basalt library to incldue JSONL format support
+add_library(basalt SHARED
+  src/jsonl_reader.cpp # JSONL dependency
+  src/dataset_io.cpp # Overides original with version that supports JSONL
+  basalt-mirror/src/io/marg_data_io.cpp
+  basalt-mirror/src/calibration/aprilgrid.cpp
+  basalt-mirror/src/calibration/calibraiton_helper.cpp
+  basalt-mirror/src/calibration/vignette.cpp
+  basalt-mirror/src/utils/vio_config.cpp
+  basalt-mirror/src/optical_flow/optical_flow.cpp
+  basalt-mirror/src/vi_estimator/keypoint_vio.cpp
+  basalt-mirror/src/vi_estimator/keypoint_vio_linearize.cpp
+  basalt-mirror/src/vi_estimator/keypoint_vo.cpp
+  basalt-mirror/src/vi_estimator/vio_estimator.cpp
+  basalt-mirror/src/vi_estimator/ba_base.cpp
+  basalt-mirror/src/vi_estimator/nfr_mapper.cpp
+  basalt-mirror/src/vi_estimator/landmark_database.cpp
+  basalt-mirror/src/utils/keypoints.cpp)
+target_link_libraries(basalt
+  PUBLIC ${TBB_LIBRARIES} ${STD_CXX_FS} ${OpenCV_LIBS} jsonl-recorder
+  PRIVATE rosbag apriltag opengv)
 
 add_executable(basalt_runner
   src/main.cpp
   src/jsonl_reader.cpp)
-
 target_link_libraries(basalt_runner
-  PUBLIC ${basalt_LIB} ${TBB_LIBRARIES} ${STD_CXX_FS} ${OpenCV_LIBS} jsonl-recorder
+  PUBLIC basalt ${TBB_LIBRARIES} ${STD_CXX_FS} ${OpenCV_LIBS} jsonl-recorder
   PRIVATE rosbag apriltag opengv)
+
+add_executable(basalt_calibrate
+  basalt-mirror/src/calibrate.cpp
+  basalt-mirror/src/calibration/cam_calib.cpp)
+target_link_libraries(basalt_calibrate basalt pangolin)
+
+add_executable(basalt_calibrate_imu
+  basalt-mirror/src/calibrate_imu.cpp
+  basalt-mirror/src/calibration/cam_imu_calib.cpp)
+target_link_libraries(basalt_calibrate_imu basalt pangolin)
