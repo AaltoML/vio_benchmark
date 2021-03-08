@@ -20,7 +20,7 @@ As an example, here are steps to calibrate Intel RealSense Tracking Camera T265 
 1. Download [Aprilgrid 6x6 0.8x0.8 m (unscaled)](https://github.com/ethz-asl/kalibr/wiki/downloads)
 2. Record session with RealSense capture using screen, TV or printed out test pattern as target. Store it to `../data/realsense-calib/calib/`, asuming you are in `basalt_runner/target` directory.
 3. Measure Apriltag dimensions. For this pattern, it's easiest to measure the edge length of the full thing consisting of 7 small spacer squares (of size 0.3a) and 6 apriltags and **divide by** 6 + 0.3 * 7 = **8.1**
-4. Write out your measurements to tagSize field in meters to `../data/realsense-calib/calib/`, for example with 66.5cm you get .665 / 8.1 = 0.082...:
+4. Write out your measurements to tagSize field  in `../data/realsense-calib/aprilgrid_6x6.json`, for example with 66.5cm you get .665 / 8.1 = 0.082...:
 ```
 {
   "tagCols": 6,
