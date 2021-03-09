@@ -23,6 +23,7 @@ def main():
                 + " --save-trajectory " + outputFile
                 + " --config-path " + args.config
                 + " --cam-calib " + args.calib
+                + " --use-png true"
                 + " > " + logFile + " 2>&1", shell=True)
 
     benchmark(args, vioTrackingFn, setupFn, tearDownFn)

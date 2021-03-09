@@ -80,6 +80,7 @@ class JsonlVioDataset : public VioDataset {
   std::string cam1;
 
   std::vector<int64_t> image_timestamps;
+  std::vector<int64_t> video_timestamps;
   std::unordered_map<int64_t, std::vector<std::string>> image_paths;
 
   Eigen::aligned_vector<AccelData> accel_data;
@@ -123,11 +124,19 @@ class JsonlVioDataset : public VioDataset {
   int64_t get_mocap_to_imu_offset_ns() const { return mocap_to_imu_offset_ns; }
 
   size_t requestedImageIndex = 0;
+  size_t videoFrameIndex = 0;
   std::vector<ImageData> get_image_data(int64_t t_ns) {
-    if (videoInPngSeries) {
+    int framesToSkip = 0;
+    if (!videoInPngSeries) {
       int64_t currentFrame = image_timestamps[requestedImageIndex++];
       (void)currentFrame;
       assert(t_ns == currentFrame && "get_image_data() must only be called once for each frame in video mode!");
+      while (video_timestamps[videoFrameIndex] != t_ns) {
+        framesToSkip++;
+        videoFrameIndex++;
+        assert(video_timestamps.size() > videoFrameIndex && "Video is missing frames");
+      }
+      videoFrameIndex++;
     }
     std::vector<ImageData> res(num_cams);
 
@@ -145,7 +154,8 @@ class JsonlVioDataset : public VioDataset {
       if (videoInPngSeries) {
         img = cv::imread(image_paths[t_ns][i], cv::IMREAD_UNCHANGED);
       } else {
-        videoCaptures[i].read(img);
+        for (int skipped = 0; skipped <= framesToSkip; skipped++)
+          videoCaptures[i].read(img);
       }
 
       if (img.type() == CV_8UC1) {
@@ -279,21 +289,30 @@ class JsonlIO : public DatasetIoInterface {
       imuSync.addLeader(time, x, y, z);
     };
 
-    long index = 0;
+    size_t index = -1;
     reader.onFrames = [this, &images0, &images1, &index](std::vector<JsonlReader::FrameParameters> frames) {
       assert(frames.size() > 0);
+      index++;
       int64_t t_ns = frames[0].time * SECONDS_TO_NS;
-      this->data->image_timestamps.emplace_back(t_ns);
+      if (!this->data->videoInPngSeries) // Keep track of all frames so we can skip bad ones later
+        data->video_timestamps.push_back(t_ns);
+      // Skip frames before first full IMU sample and/or lower/identical timestamps, otherwise Basalt crashes
+      if (this->data->imu_data.size() == 0 || (this->data->image_timestamps.size() > 0 && t_ns <= this->data->image_timestamps.back()))
+        return;
 
       if (this->data->videoInPngSeries) {
-        assert(index < images0.size() && "More frames in JSONL than there are PNG images");
+        if (index >= images0.size()) {
+          std::cout << "Frame index " << index << " is higher than number of PNG images " << images0.size() << " skipping it." << std::endl;
+          return;
+        }
         std::vector<std::string> paths;
         paths.push_back(images0[index]);
         if (data->num_cams == 2)
           paths.push_back(images1[index]);
         this->data->image_paths.insert({t_ns, paths});
-        index++;
       }
+
+      this->data->image_timestamps.emplace_back(t_ns);
     };
 
     data->imu_data.clear();
