@@ -289,9 +289,10 @@ class JsonlIO : public DatasetIoInterface {
       imuSync.addLeader(time, x, y, z);
     };
 
-    size_t index = -1;
+    size_t index = 0;
     reader.onFrames = [this, &images0, &images1, &index](std::vector<JsonlReader::FrameParameters> frames) {
       assert(frames.size() > 0);
+      size_t currentIndex = index;
       index++;
       int64_t t_ns = frames[0].time * SECONDS_TO_NS;
       if (!this->data->videoInPngSeries) // Keep track of all frames so we can skip bad ones later
@@ -301,14 +302,14 @@ class JsonlIO : public DatasetIoInterface {
         return;
 
       if (this->data->videoInPngSeries) {
-        if (index >= images0.size()) {
-          std::cout << "Frame index " << index << " is higher than number of PNG images " << images0.size() << " skipping it." << std::endl;
+        if (currentIndex >= images0.size()) {
+          std::cout << "Frame index " << currentIndex << " is higher than number of PNG images " << images0.size() << " skipping it." << std::endl;
           return;
         }
         std::vector<std::string> paths;
-        paths.push_back(images0[index]);
+        paths.push_back(images0[currentIndex]);
         if (data->num_cams == 2)
-          paths.push_back(images1[index]);
+          paths.push_back(images1[currentIndex]);
         this->data->image_paths.insert({t_ns, paths});
       }
 
