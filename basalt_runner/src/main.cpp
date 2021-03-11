@@ -228,7 +228,6 @@ void feed_images() {
 
     data->t_ns = vio_dataset->get_image_timestamps()[i];
 
-    // TODO: param ignored
     data->img_data = vio_dataset->get_image_data(data->t_ns);
 
     timestamp_to_id[data->t_ns] = i;
@@ -346,6 +345,8 @@ int main(int argc, char** argv) {
     dataset_io->read(dataset_path);
 
     vio_dataset = dataset_io->get_data();
+
+    assert(vio_dataset->get_num_cams() == 2 && "Only stereo supported right now, this might change in future");
 
     opt_flow_ptr =
         basalt::OpticalFlowFactory::getOpticalFlow(vio_config, calib);

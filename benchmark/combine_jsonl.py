@@ -216,5 +216,11 @@ if __name__ == "__main__":
         methods.append("gpsTime")
         folders.append(args.root + args.gpstime)
 
-    combineJSONL(args.root + args.folder, args.root + args.output, folders, methods, args.root + args.rtk, not args.notrim)
+    combineJSONL(
+        args.root + args.folder,
+        args.root + args.output if args.output else None,
+        folders,
+        methods,
+        args.root + args.rtk if args.rtk else None,
+        not args.notrim)
     print("Done!")

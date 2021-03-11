@@ -51,6 +51,9 @@ public:
     }
 
     void addLeader(double time, double x, double y, double z) {
+        // Not strictly necessary in scope of this class, but leads to more nicely behaved data
+        if (!this->leaderSamples.empty() && time <= this->leaderSamples.front().time)
+            return;
         this->leaderSamples.emplace_front(Sample {time, x, y, z});
         process();
     }
