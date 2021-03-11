@@ -1,27 +1,17 @@
-# Plot IMU bias data from a JSONL file whose rows have data in this kind of format:
-#
-#   {
-#     "time": 0.0,
-#     "biasMean": {
-#       "GyroscopeAdditive": {
-#         "x": 0.0,
-#         "y": 0.0,
-#         "z": 0.0
-#       },
-#       "AccelerometerAdditive": {
-#         "x": 0.0,
-#         "y": 0.0,
-#         "z": 0.0
-#       }
-#     },
-#     "biasCovarianceDiagonal": {
-#       "GyroscopeAdditive": {
-#         "x": 0.0,
-#         "y": 0.0,
-#         "z": 0.0
-#       }
-#     }
-#   }
+"""
+Plot IMU bias data from a JSONL file whose rows have data in this kind of format:
+
+{
+  "time": 0.0,
+  "biasMean": {
+    "GyroscopeAdditive": { "x": 0.0, "y": 0.0, "z": 0.0 },
+    "AccelerometerAdditive": { "x": 0.0, "y": 0.0, "z": 0.0 }
+  },
+  "biasCovarianceDiagonal": {
+    "GyroscopeAdditive": { "x": 0.0, "y": 0.0, "z": 0.0 }
+  }
+}
+"""
 
 import json
 import numpy as np
