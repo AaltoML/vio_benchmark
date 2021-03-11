@@ -1,6 +1,6 @@
-[submodule "thirdparty/basalt-mirror"]
-	path = basalt_runner/basalt-mirror
-	url = https://github.com/VladyslavUsenko/basalt-mirror.git
 [submodule "jsonl-recorder"]
 	path = jsonl-recorder
 	url = https://github.com/AaltoVision/jsonl-recorder.git
+[submodule "basalt_runner/basalt-mirror"]
+	path = basalt_runner/basalt-mirror
+	url = https://github.com/VladyslavUsenko/basalt-mirror.git
