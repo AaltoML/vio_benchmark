@@ -96,7 +96,7 @@ set(CMAKE_CXX_FLAGS_CIDEBUG  "-O0 -DEIGEN_INITIALIZE_MATRICES_BY_NAN")          
 set(CMAKE_CXX_FLAGS_CIRELWITHDEBINFO "-O3 -DEIGEN_INITIALIZE_MATRICES_BY_NAN")  # CI version with no debug symbols
 
 # base set of compile flags
-set(BASALT_CXX_FLAGS "-Wall -Wextra -Werror -Wno-error=unused-parameter -ftemplate-backtrace-limit=0")
+set(BASALT_CXX_FLAGS "-Wall -Wextra -Wno-error=unused-parameter -ftemplate-backtrace-limit=0")
 
 # clang-specific compile flags
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
@@ -168,6 +168,14 @@ elseif(UNIX)
   # assume libstdc++
   set(STD_CXX_FS stdc++fs)
 
+  # pthreads
+  set(CMAKE_THREAD_LIBS_INIT "${CMAKE_THREAD_LIBS_INIT} -lpthread")
+  set(BASALT_CXX_FLAGS "${BASALT_CXX_FLAGS} -pthread")
+  set(CMAKE_HAVE_THREADS_LIBRARY 1)
+  set(CMAKE_USE_WIN32_THREADS_INIT 0)
+  set(CMAKE_USE_PTHREADS_INIT 1)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+
   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(LINUX_CLANG 1)
     message(STATUS "Detected Linux with clang.")
@@ -217,7 +225,6 @@ set(BASALT_CXX_FLAGS "${BASALT_CXX_FLAGS} -DEIGEN_DONT_PARALLELIZE")
 #else()
 #  message(STATUS "OpenMP Disabled")
 #endif()
-
 
 # setup combined compiler flags
 set(CMAKE_CXX_FLAGS "${BASALT_CXX_FLAGS} -march=${CXX_MARCH} ${BASALT_PASSED_CXX_FLAGS}")
