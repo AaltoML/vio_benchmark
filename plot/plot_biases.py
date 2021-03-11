@@ -1,7 +1,37 @@
+# Plot IMU bias data from a JSONL file whose rows have data in this kind of format:
+#
+#   {
+#     "time": 0.0,
+#     "biasMean": {
+#       "GyroscopeAdditive": {
+#         "x": 0.0,
+#         "y": 0.0,
+#         "z": 0.0
+#       },
+#       "AccelerometerAdditive": {
+#         "x": 0.0,
+#         "y": 0.0,
+#         "z": 0.0
+#       }
+#     },
+#     "biasCovarianceDiagonal": {
+#       "GyroscopeAdditive": {
+#         "x": 0.0,
+#         "y": 0.0,
+#         "z": 0.0
+#       }
+#     }
+#   }
+
 import json
 import numpy as np
 
-BIASES = ['baa', 'bga', 'bat']
+BAA = 'accelerometerAdditive'
+BGA = 'gyroscopeAdditive'
+BAT = 'accelerometerTransform'
+BIASES = [BAA, BGA, BAT]
+BIAS_MEAN = 'biasMean'
+BIAS_COV = 'biasCovarianceDiagonal'
 
 def read_jsonl(fn):
     with open(fn) as f:
@@ -13,11 +43,17 @@ def read_biases(fn):
     errors = { b: [] for b in BIASES }
 
     for o in read_jsonl(fn):
-        if 'mean' not in o: continue
+        if BIAS_MEAN not in o: continue
         ts.append(o['time'])
         for k in BIASES:
-            biases[k].append([o['mean'][k][c] for c in 'xyz'])
-            errors[k].append([np.sqrt(o['covDiag'][k][c]) for c in 'xyz'])
+            if k in o[BIAS_MEAN]:
+              biases[k].append([o[BIAS_MEAN][k][c] for c in 'xyz'])
+            if BIAS_COV in o and k in o[BIAS_COV]:
+              errors[k].append([np.sqrt(o[BIAS_COV][k][c]) for c in 'xyz'])
+
+    for k in BIASES:
+      assert(len(biases[k]) == 0 or len(biases[k]) == len(ts))
+      assert(len(errors[k]) == 0 or len(errors[k]) == len(ts))
 
     to_np = lambda d: { k: np.array(v) for k, v in d.items() }
 
@@ -41,8 +77,9 @@ if __name__ == '__main__':
 
     p = argparse.ArgumentParser(__doc__)
     p.add_argument('vio_jsonl_out_file', help='VIO output file with biases')
-    p.add_argument('which_bias', nargs='?', choices=BIASES, default='bga')
+    p.add_argument('which_bias', nargs='?', choices=BIASES, default=BGA)
     p.add_argument('-T', '--temperature_file')
+    p.add_argument('-image', help='Save image to this path instead of showing the plot, eg "bias.png"')
     args = p.parse_args()
 
     ts, biases, errors = read_biases(args.vio_jsonl_out_file)
@@ -70,15 +107,24 @@ if __name__ == '__main__':
     ts -= ts[0]
 
     err_color = [0.9 for _ in 'rgb']
-    plt.plot(ts, y + err, c=err_color)
-    plt.plot(ts, y - err, c=err_color)
+    if len(err) > 0:
+      plt.plot(ts, y + err, c=err_color)
+      plt.plot(ts, y - err, c=err_color)
     plt.plot(ts, y)
-    plt.xlabel('t (s)')
-    plt.ylabel('bias (rad/s)')
     plt.title(args.which_bias)
+    plt.xlabel('t (s)')
+    if args.which_bias == BGA:
+      plt.ylabel('bias (rad/s)')
+    elif args.which_bias == BAA:
+      plt.ylabel('bias (m/s^2)')
+    elif args.which_bias == BAT:
+      plt.ylabel('bias')
 
     fit_range = ts > FIT_RANGE_T0
     ylim = [np.min(y[fit_range, :]), np.max(y[fit_range, :])]
     margin = (ylim[1] - ylim[0])*0.25
     plt.ylim([ylim[0] - margin, ylim[1] + margin])
-    plt.show()
+    if args.image:
+      plt.savefig(args.image)
+    else:
+      plt.show()
