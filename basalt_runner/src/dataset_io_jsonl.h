@@ -236,6 +236,7 @@ class JsonlIO : public DatasetIoInterface {
         data->num_cams = 2;
     } else {
       std::cout << "Using video file" << std::endl;
+      data->videoInPngSeries = false;
       data->cam0 = findVideoSuffix(joinUnixPath(path , "data"));
       data->cam1 = findVideoSuffix(joinUnixPath(path , "data2"));
       if (data->cam0.empty()) assert(false && "No video found");
