@@ -68,7 +68,7 @@ else()
 endif()
 
 if( NOT CMAKE_BUILD_TYPE )
-  set( CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
 if(NOT CXX_MARCH)
