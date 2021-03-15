@@ -92,34 +92,36 @@ basalt::OpticalFlowBase::Ptr opt_flow_ptr;
 basalt::VioEstimatorBase::Ptr vio;
 
 void load_calibration(std::string calib_path) {
+  std::cout << "Loading standard calibration" << std::endl;
   using json = nlohmann::json;
   std::ifstream ifs(calib_path);
   json config = json::parse(ifs);
   auto cameras = config["cameras"].get<json>();
   for (auto it = cameras.begin(); it != cameras.end(); ++it) {
     json &camera = *it;
-    if (camera.find("imuToCamera") != camera.end()) {
+    if (camera.find("cameraToImu") != camera.end()) {
       Eigen::Matrix4d imuToCamera;
       for (int r = 0; r < 4; r++)
         for (int c = 0; c < 4; c++)
-          imuToCamera(r, c) = camera["imuToCamera"][r][c].get<double>();
+          imuToCamera(r, c) = camera["cameraToImu"][r][c].get<double>();
       calib.T_i_c.push_back(Sophus::SE3<double>(imuToCamera));
     }
-    if (camera.find("imuToCameraQuat") != camera.end()) {
-      auto imu = camera["imuToCameraQuat"].get<json>();
-      Eigen::Quaternion<double> quat(
-          imu["qw"].get<double>(),
-          imu["qx"].get<double>(),
-          imu["qy"].get<double>(),
-          imu["qz"].get<double>()
-      );
-      Sophus::Vector3<double> trans;
-      trans <<
-          imu["px"].get<double>(),
-          imu["py"].get<double>(),
-          imu["pz"].get<double>();
-      calib.T_i_c.push_back(Sophus::SE3<double>(quat, trans));
-    }
+    // TODO: Remove?
+    // if (camera.find("imuToCameraQuat") != camera.end()) {
+    //   auto imu = camera["imuToCameraQuat"].get<json>();
+    //   Eigen::Quaternion<double> quat(
+    //       imu["qw"].get<double>(),
+    //       imu["qx"].get<double>(),
+    //       imu["qy"].get<double>(),
+    //       imu["qz"].get<double>()
+    //   );
+    //   Sophus::Vector3<double> trans;
+    //   trans <<
+    //       imu["px"].get<double>(),
+    //       imu["py"].get<double>(),
+    //       imu["pz"].get<double>();
+    //   calib.T_i_c.push_back(Sophus::SE3<double>(quat, trans));
+    // }
     if (camera.find("models") != camera.end()) {
       auto models = camera["models"].get<json>();
       for (auto mit = models.begin(); mit != models.end(); ++mit) {
@@ -137,6 +139,20 @@ void load_calibration(std::string calib_path) {
             model["alpha"].get<double>();
           basalt::GenericCamera<double> genCamera;
           genCamera.variant = basalt::DoubleSphereCamera(params);
+          calib.intrinsics.push_back(genCamera);
+        } else if (name == "kannala-brandt4") {
+          Eigen::Matrix<double, 8, 1> params; // fx, fy, cx, cy, kb0, kb1, kb2, kb3
+          params <<
+            model["focalLengthX"].get<double>(),
+            model["focalLengthY"].get<double>(),
+            model["principalPointX"].get<double>(),
+            model["principalPointY"].get<double>(),
+            model["distortionCoefficient"][0].get<double>(),
+            model["distortionCoefficient"][1].get<double>(),
+            model["distortionCoefficient"][2].get<double>(),
+            model["distortionCoefficient"][3].get<double>();
+          basalt::GenericCamera<double> genCamera;
+          genCamera.variant = basalt::KannalaBrandtCamera4(params);
           calib.intrinsics.push_back(genCamera);
         }
       }
@@ -198,6 +214,7 @@ void load_calibration(std::string calib_path) {
 }
 
 void load_calibration_basalt(const std::string& calib_path) {
+  std::cout << "Loading basalt calibration" << std::endl;
   std::ifstream os(calib_path, std::ios::binary);
   if (os.is_open()) {
     cereal::JSONInputArchive archive(os);

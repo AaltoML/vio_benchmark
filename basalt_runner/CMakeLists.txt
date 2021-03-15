@@ -301,3 +301,8 @@ add_executable(basalt_calibrate_imu
   basalt-mirror/src/calibrate_imu.cpp
   basalt-mirror/src/calibration/cam_imu_calib.cpp)
 target_link_libraries(basalt_calibrate_imu basalt pangolin)
+
+add_executable(calibration_converter
+  src/calibration_converter.cpp)
+target_link_libraries(calibration_converter
+  PUBLIC basalt)
