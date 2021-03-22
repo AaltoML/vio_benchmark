@@ -99,12 +99,12 @@ void load_calibration(std::string calib_path) {
   auto cameras = config["cameras"].get<json>();
   for (auto it = cameras.begin(); it != cameras.end(); ++it) {
     json &camera = *it;
-    if (camera.find("cameraToImu") != camera.end()) {
+    if (camera.find("imuToCamera") != camera.end()) {
       Eigen::Matrix4d imuToCamera;
       for (int r = 0; r < 4; r++)
         for (int c = 0; c < 4; c++)
-          imuToCamera(r, c) = camera["cameraToImu"][r][c].get<double>();
-      calib.T_i_c.push_back(Sophus::SE3<double>(imuToCamera));
+          imuToCamera(r, c) = camera["imuToCamera"][r][c].get<double>();
+      calib.T_i_c.push_back(Sophus::SE3<double>(imuToCamera).inverse());
     }
     // TODO: Remove?
     // if (camera.find("imuToCameraQuat") != camera.end()) {
@@ -128,7 +128,7 @@ void load_calibration(std::string calib_path) {
         auto &model = *mit;
         std::string name = model["name"].get<std::string>();
         // TODO: Add missing camera models
-        if (name == "ds") {
+        if (name == "doublesphere") {
           Eigen::Matrix<double, 6, 1> params; // fx, fy, cx, cy, xi, alpha
           params <<
             model["focalLengthX"].get<double>(),

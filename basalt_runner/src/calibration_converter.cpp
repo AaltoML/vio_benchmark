@@ -111,7 +111,21 @@ int main(int argc, char **argv) {
       modelJson["principalPointY"] = params(3);
       modelJson["distortionCoefficient"] = {params(4), params(5), params(6), params(7)};
       cameraJson["models"].push_back(modelJson);
+    } else if (modelName == "ds") {
+      json modelJson;
+      modelJson["name"] = "doublesphere";
+      modelJson["focalLengthX"] = params(0);
+      modelJson["focalLengthY"] = params(1);
+      modelJson["principalPointX"] = params(2);
+      modelJson["principalPointY"] = params(3);
+      modelJson["xi"] = params(4);
+      modelJson["alpha"] = params(5);
+      cameraJson["models"].push_back(modelJson);
     }
+
+    for (size_t p = 0; p < calib.vignette[i].getKnots().size(); p++)
+      cameraJson["vignette"].push_back(calib.vignette[i].getKnots()[p](0));
+
     if (i == 0)
       std::cout << "imuToCameraMatrix ";
     else
@@ -124,7 +138,6 @@ int main(int argc, char **argv) {
         else std::cout << ",";
       }
     }
-    cameraJson["cameraToImu"] = se3ToJson(calib.T_i_c[i]);
     cameraJson["imuToCamera"] = se3ToJson(calib.T_i_c[i].inverse());
     calibJson["cameras"].push_back(cameraJson);
   }

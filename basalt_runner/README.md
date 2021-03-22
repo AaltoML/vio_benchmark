@@ -11,7 +11,7 @@ You don't need to build Basalt separately, it's included in the step 2.
 
 ## Basalt Runner
 
-Finally run the benchmark, for example `python run_benchmark.py euroc-mh-01-easy -dir ~/euroc_benchmarks/ -calib ./basalt-mirror/data/euroc_ds_calib.json -config ./basalt-mirror/data/euroc_config.json`, asuming your `EuroC` data is in `~/euroc_benchmarks` directory.
+Finally run the benchmark, for example `python run_benchmark.py euroc-mh-01-easy -dir ~/euroc_benchmarks/ -calib ./example/euroc_kb4_calibration.json -config ./basalt-mirror/data/euroc_config.json`, asuming your `EuroC` data is in `~/euroc_benchmarks` directory in converted format.
 
 ## Basalt Calibration
 
@@ -57,6 +57,13 @@ ffmpeg -i recording-2021-03-08T09-11-23Z-video2.avi -vsync 0 "video2/frame_%05d.
 	--accel-noise-std 0.016 \
 	--gyro-bias-std 0.0001 \
 	--accel-bias-std 0.001
+```
+
+10. Finally converting from serialized Basalt json format into more generalized json:
+```
+./calibration_converter \
+	--calib-path ../data/realsense-calib/calib/calibration.json \
+	--output-path ../example/realsense_kb4_calibration.json
 ```
 
 ## License
