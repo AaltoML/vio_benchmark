@@ -4,3 +4,6 @@
 [submodule "basalt_runner/basalt-mirror"]
 	path = basalt_runner/basalt-mirror
 	url = https://github.com/VladyslavUsenko/basalt-mirror.git
+[submodule "orbslam3_runner/ORB_SLAM3"]
+	path = orbslam3_runner/ORB_SLAM3
+	url = https://github.com/Bercon/ORB_SLAM3.git
