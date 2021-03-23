@@ -6,13 +6,24 @@ Simple CLI tool to run [ORB-SLAM3](https://github.com/UZ-SLAMLab/ORB_SLAM3) with
 
 You don't need to build ORB_SLAM3 separately, it's included in the step 3.
 
-1. Install dependencies: `pangolin`, `opencv@3`, `eigen`, and `boost`.
+1. Install dependencies using your favorite package manager: `pangolin opencv@3 eigen boost`.
 2. Build included dependencies: `./build_dependencies.sh`
 3. Build with `mkdir target && cd target && cmake .. && make -j8`.
 
 ## ORB_SLAM3 Runner
 
-TODO
+First run will create a binary version of ORB vocabulary for MUCH faster loading.
+
+Run the benchmark, for example, asuming your `EuroC` data is in `~/euroc_benchmarks` directory in converted format:
+
+```
+	python run_benchmark.py euroc-mh-01-easy \
+		-dir ~/euroc_benchmarks/ \
+		-vocab ./ORB_SLAM3/Vocabulary \
+		-config ./ORB_SLAM3/Examples/Stereo-Inertial/EuRoC.yaml \
+		-metricSet full_3d_align \
+		-thread 1
+```
 
 ## License
 

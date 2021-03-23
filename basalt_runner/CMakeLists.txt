@@ -262,10 +262,10 @@ include_directories(basalt-mirror/thirdparty/CLI11/include)
 include_directories(basalt-mirror/thirdparty/fast/include)
 
 include_directories(basalt-mirror/include)
+include_directories(../jsonl-recorder)
 
 # Modified basalt library to incldue JSONL format support
 add_library(basalt SHARED
-  src/jsonl_reader.cpp # JSONL dependency
   src/dataset_io.cpp # Overides original with version that supports JSONL
   basalt-mirror/src/io/marg_data_io.cpp
   basalt-mirror/src/calibration/aprilgrid.cpp
@@ -287,7 +287,7 @@ target_link_libraries(basalt
 
 add_executable(basalt_runner
   src/main.cpp
-  src/jsonl_reader.cpp)
+)
 target_link_libraries(basalt_runner
   PUBLIC basalt ${TBB_LIBRARIES} ${STD_CXX_FS} ${OpenCV_LIBS} jsonl-recorder
   PRIVATE rosbag apriltag opengv)

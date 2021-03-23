@@ -6,4 +6,4 @@
 	url = https://github.com/VladyslavUsenko/basalt-mirror.git
 [submodule "orbslam3_runner/ORB_SLAM3"]
 	path = orbslam3_runner/ORB_SLAM3
-	url = https://github.com/Bercon/ORB_SLAM3.git
+	url = https://github.com/AaltoVision/ORB_SLAM3.git

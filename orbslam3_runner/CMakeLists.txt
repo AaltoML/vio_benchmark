@@ -127,6 +127,9 @@ ORB_SLAM3/include/TwoViewReconstruction.h
 ORB_SLAM3/src/TwoViewReconstruction.cc)
 
 add_subdirectory(ORB_SLAM3/Thirdparty/g2o)
+add_subdirectory(../jsonl-recorder jsonl-recorder)
+
+include_directories(../jsonl-recorder)
 
 find_library(DBOW2 DBoW2 HITS ORB_SLAM3/Thirdparty/DBoW2/lib)
 find_library(G2O g2o HITS ORB_SLAM3/Thirdparty/g2o/lib)
@@ -137,82 +140,15 @@ ${EIGEN3_LIBS}
 ${Pangolin_LIBRARIES}
 ${DBOW2}
 ${G2O}
+# TODO: What were these used for?
 # -lboost_serialization
 # -lcrypto
 )
 
-
-# Build examples
-
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D)
-# add_executable(rgbd_tum
-# Examples/RGB-D/rgbd_tum.cc)
-# target_link_libraries(rgbd_tum ${PROJECT_NAME})
-
-
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
-
-# add_executable(stereo_kitti
-# Examples/Stereo/stereo_kitti.cc)
-# target_link_libraries(stereo_kitti ${PROJECT_NAME})
-
-# add_executable(stereo_euroc
-# Examples/Stereo/stereo_euroc.cc)
-# target_link_libraries(stereo_euroc ${PROJECT_NAME})
-
-# add_executable(stereo_tum_vi
-# Examples/Stereo/stereo_tum_vi.cc)
-# target_link_libraries(stereo_tum_vi ${PROJECT_NAME})
-
-
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular)
-
-# add_executable(mono_tum
-# Examples/Monocular/mono_tum.cc)
-# target_link_libraries(mono_tum ${PROJECT_NAME})
-
-# add_executable(mono_kitti
-# Examples/Monocular/mono_kitti.cc)
-# target_link_libraries(mono_kitti ${PROJECT_NAME})
-
-# add_executable(mono_euroc
-# Examples/Monocular/mono_euroc.cc)
-# target_link_libraries(mono_euroc ${PROJECT_NAME})
-
-# add_executable(mono_tum_vi
-# Examples/Monocular/mono_tum_vi.cc)
-# target_link_libraries(mono_tum_vi ${PROJECT_NAME})
-
-
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Monocular-Inertial)
-
-# add_executable(mono_inertial_euroc
-# Examples/Monocular-Inertial/mono_inertial_euroc.cc)
-# target_link_libraries(mono_inertial_euroc ${PROJECT_NAME})
-
-# add_executable(mono_inertial_tum_vi
-# Examples/Monocular-Inertial/mono_inertial_tum_vi.cc)
-# target_link_libraries(mono_inertial_tum_vi ${PROJECT_NAME})
-
-
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo-Inertial)
+add_executable(orbslam3_runner
+src/orbslam3_runner.cc)
+target_link_libraries(orbslam3_runner ${PROJECT_NAME} jsonl-recorder)
 
 add_executable(stereo_inertial_euroc
-ORB_SLAM3/Examples/Stereo-Inertial/stereo_inertial_euroc.cc)
-target_link_libraries(stereo_inertial_euroc ${PROJECT_NAME})
-
-
-# add_executable(stereo_inertial_tum_vi
-# Examples/Stereo-Inertial/stereo_inertial_tum_vi.cc)
-# target_link_libraries(stereo_inertial_tum_vi ${PROJECT_NAME})
-
-
-# AR DEMO:
-
-# set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/AR)
-
-# add_executable(mono_ar
-# Examples/AR/mono_ar.cc
-# Examples/AR/ViewerAR.cc
-# )
-# target_link_libraries(mono_ar ${PROJECT_NAME})
+src/stereo_inertial_euroc.cc)
+target_link_libraries(stereo_inertial_euroc ${PROJECT_NAME} jsonl-recorder)
