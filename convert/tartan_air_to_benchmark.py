@@ -133,8 +133,6 @@ def convert_sequence(fullPath, sequence, dataset, level):
         csvRows = csv.reader(f, delimiter=' ')
         rows = []
         for row in csvRows:
-            if not p0[0]:
-                p0 = [float(row[0]), float(row[1]), float(row[2])]
             rows.append(row)
 
         # The general coordinate transformation has the form
@@ -154,6 +152,8 @@ def convert_sequence(fullPath, sequence, dataset, level):
         fixedRows = fixTartan(W, L, rows)
 
         for row in fixedRows:
+            if not p0[0]:
+                p0 = [row[0], row[1], row[2]]
             p = [row[0] - p0[0], row[1] - p0[1], row[2] - p0[2]]
             q = [row[6], row[3], row[4], row[5]] # wxyz
             gt = {
