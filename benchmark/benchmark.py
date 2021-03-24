@@ -141,7 +141,7 @@ def computeMetrics(fn):
     return result
 
 
-def loadBenchmarkComparisonData(benchmarkComparison, caseDir, groundTruth, jsonlFile, gtCopy, gtJson, slamMapFile):
+def loadBenchmarkComparisonData(benchmarkComparison, caseDir, groundTruth, jsonlFile, gtCopy, gtJson, slamMapFile, outputFile):
     if benchmarkComparison and benchmarkComparison.endswith(".csv"):
         gtFile = caseDir + "/" + benchmarkComparison
         if not os.path.exists(gtFile):
@@ -230,6 +230,13 @@ def loadBenchmarkComparisonData(benchmarkComparison, caseDir, groundTruth, jsonl
                 for line in f.readlines():
                     y = [float(x) for x in line.split(",")]
                     slamMap.append([y[0], -y[1], y[3], y[2]])
+        else:
+            mapFn = outputFile.rsplit(".")[0] + "_map.jsonl"
+            if os.path.exists(mapFn):
+                with open(mapFn) as f:
+                    for line in f.readlines():
+                        row = json.loads(line)
+                        slamMap.append([row["time"], -row["position"]["x"], row["position"]["z"], row["position"]["y"]])
 
         with open(gtJson, "w") as f:
             def addDataSet(array, name, dataset, benchmark):
@@ -288,7 +295,7 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
     if failed:
         raise Exception("Error! Failed to run benchmark 5 times")
 
-    loadBenchmarkComparisonData(benchmark.benchmarkComparison, caseDir, args.groundTruth, jsonlFile, gtCopy, gtJson, slamMapFile)
+    loadBenchmarkComparisonData(benchmark.benchmarkComparison, caseDir, args.groundTruth, jsonlFile, gtCopy, gtJson, slamMapFile, outputFile)
 
     metric = computeMetrics(partial(compute_metrics, folder=dirs.results, casename=caseName, figure_output=figure, **metricsKwargs(args, single=True)))
     if metric:

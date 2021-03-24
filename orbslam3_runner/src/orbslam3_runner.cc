@@ -38,6 +38,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "system_ext.hpp"
+
 using namespace std;
 
 bool fileExists(const std::string filename) {
@@ -54,10 +56,16 @@ std::string findVideoSuffix(std::string videoPathNoSuffix) {
   return "";
 }
 
+inline bool ends_with(std::string const &value, std::string const &ending) {
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+// Adapted from stereo_intertial_euroc.cc example from ORBSLAM3 Examples
 int main(int argc, char **argv)
 {
     if(argc != 5) {
-        cerr << endl << "Usage: ./main path_to_vocabulary_folder path_to_settings path_to_dataset_folder output _path" << endl;
+        cerr << endl << "Usage: ./main path_to_vocabulary_folder path_to_settings path_to_dataset_folder output_path" << endl;
         return 1;
     }
 
@@ -65,6 +73,8 @@ int main(int argc, char **argv)
     std::string settingsFile = argv[2];
     std::string datasetFolder = argv[3];
     std::string outputFile = argv[4];
+
+    assert(ends_with(outputFile, ".jsonl") && "output must end with .jsonl");
 
     std::string vocabBinPath = vocabFolder + "/ORBvoc.bin";
     if (!fileExists(vocabBinPath)) {
@@ -165,7 +175,8 @@ int main(int argc, char **argv)
     cout.precision(17);
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(
+    // SystemExt is an extended version of standard ORBSLAM3 System with support to export final trajectory
+    ORB_SLAM3::SystemExt SLAM(
         vocabBinPath,
         settingsFile,
         ORB_SLAM3::System::IMU_STEREO,
@@ -309,20 +320,26 @@ int main(int argc, char **argv)
     // Stop all threads
     SLAM.Shutdown();
 
-    // TODO: Add option to save this?
     // Save camera trajectory
-    // if (bFileName)
-    // {
-    //     const string kf_file =  "kf_" + string(argv[argc-1]) + ".txt";
-    //     const string f_file =  "f_" + string(argv[argc-1]) + ".txt";
-    //     SLAM.SaveTrajectoryEuRoC(f_file);
-    //     SLAM.SaveKeyFrameTrajectoryEuRoC(kf_file);
-    // }
-    // else
-    // {
-    //     SLAM.SaveTrajectoryEuRoC("CameraTrajectory.txt");
-    //     SLAM.SaveKeyFrameTrajectoryEuRoC("KeyFrameTrajectory.txt");
-    // }
+    outputFile.insert(outputFile.length() - 6, "_map");
+    std::ofstream mapOs(outputFile);
+    SLAM.ExportMap(
+        [&mapOs, &outputJson](
+            double time,
+            double posX, double posY, double posZ,
+            double rotW, double rotX, double rotY, double rotZ
+        ) {
+            outputJson["time"] = time;
+            outputJson["position"]["x"] = posX;
+            outputJson["position"]["y"] = posY;
+            outputJson["position"]["z"] = posZ;
+            outputJson["orientation"]["w"] = rotW;
+            outputJson["orientation"]["x"] = rotX;
+            outputJson["orientation"]["y"] = rotY;
+            outputJson["orientation"]["z"] = rotZ;
+            mapOs << outputJson.dump() << std::endl;
+        }
+    );
 
     return 0;
 }
