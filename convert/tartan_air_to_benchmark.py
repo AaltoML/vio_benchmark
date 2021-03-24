@@ -181,7 +181,7 @@ def convert_sequence(fullPath, sequence, dataset, level):
             number += 1
 
     # Write JSONL
-    with open(outPath + "/data-no-imu.jsonl", "w") as f:
+    with open(outPath + "/data.jsonl", "w") as f:
         for obj in output:
             f.write(json.dumps(obj, separators=(',', ':')))
             f.write("\n")
