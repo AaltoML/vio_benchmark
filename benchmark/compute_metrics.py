@@ -18,7 +18,7 @@ EXTERNAL_COLORS = {
     'arcore': 'lawngreen',
     'arengine': 'violet',
     'ondevice': 'steelblue',
-    'slam': 'gold',
+    'slam': '#202020',
     'gps': 'darkred',
     'rtkgps': 'salmon'
 }
