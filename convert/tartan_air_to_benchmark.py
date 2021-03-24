@@ -37,6 +37,7 @@ LEVELS = ["Easy", "Hard"]
 
 DATASETS = [
     "abandonedfactory",
+    "abandonedfactory_night",
     "amusement",
     "carwelding",
     "endofworld",
@@ -49,7 +50,8 @@ DATASETS = [
     "office2",
     "oldtown",
     "seasidetown",
-    "seasonsforest"
+    "seasonsforest",
+    "seasonsforest_winter",
     "soulcity",
     "westerndesert",
 ]
