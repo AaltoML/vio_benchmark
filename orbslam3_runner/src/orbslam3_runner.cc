@@ -61,7 +61,7 @@ inline bool ends_with(std::string const &value, std::string const &ending) {
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-// Adapted from stereo_intertial_euroc.cc example from ORBSLAM3 Examples
+// Adapted from stereo_inertial_euroc.cc example from ORBSLAM3 Examples
 int main(int argc, char **argv)
 {
     if(argc != 5) {

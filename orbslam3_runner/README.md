@@ -2,7 +2,7 @@
 
 Simple CLI tool to run [ORB-SLAM3](https://github.com/UZ-SLAMLab/ORB_SLAM3) with standard JSONL formats presented in this repo.
 
-ORB-SLAM3 version used is a fork that has added Mac support and binary ORB Vocabulary format support for improved startup times.
+ORB-SLAM3 version used is a fork that has added Mac support and binary ORB Vocabulary format support for improved startup times, neither impacts the algorithm itself.
 
 ## Build
 
@@ -24,6 +24,7 @@ Run the benchmark, for example, asuming your `EuroC` data is in `~/euroc_benchma
 		-vocab ./ORB_SLAM3/Vocabulary \
 		-config ./ORB_SLAM3/Examples/Stereo-Inertial/EuRoC.yaml \
 		-metricSet full_3d_align \
+		-compare groundTruth,slam \
 		-thread 1
 ```
 
