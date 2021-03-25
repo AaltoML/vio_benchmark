@@ -76,6 +76,9 @@ int main(int argc, char **argv)
 
     assert(ends_with(outputFile, ".jsonl") && "output must end with .jsonl");
 
+    // TODO: Horrible hack
+    bool isTUM = ends_with(settingsFile, "TUM_512.yaml");
+
     std::string vocabBinPath = vocabFolder + "/ORBvoc.bin";
     if (!fileExists(vocabBinPath)) {
         // On first run, convert ORBvoc to a binary file for faster loading in future runs
@@ -135,6 +138,10 @@ int main(int argc, char **argv)
         first_imu++;
     first_imu--; // first imu measurement to be considered
 
+
+    cv::Ptr<cv::CLAHE> clahe;
+    if (isTUM) clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+
     // Read rectification parameters
     cv::FileStorage fsSettings(argv[2], cv::FileStorage::READ);
     if(!fsSettings.isOpened()) {
@@ -160,16 +167,18 @@ int main(int argc, char **argv)
     int rows_r = fsSettings["RIGHT.height"];
     int cols_r = fsSettings["RIGHT.width"];
 
-    if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
-            rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
-    {
-        cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
-        return -1;
-    }
-
     cv::Mat M1l,M2l,M1r,M2r;
-    cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
-    cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
+
+    if (!isTUM) {
+        if(K_l.empty() || K_r.empty() || P_l.empty() || P_r.empty() || R_l.empty() || R_r.empty() || D_l.empty() || D_r.empty() ||
+                rows_l==0 || rows_r==0 || cols_l==0 || cols_r==0)
+        {
+            cerr << "ERROR: Calibration parameters to rectify stereo are missing!" << endl;
+            return -1;
+        }
+        cv::initUndistortRectifyMap(K_l,D_l,R_l,P_l.rowRange(0,3).colRange(0,3),cv::Size(cols_l,rows_l),CV_32F,M1l,M2l);
+        cv::initUndistortRectifyMap(K_r,D_r,R_r,P_r.rowRange(0,3).colRange(0,3),cv::Size(cols_r,rows_r),CV_32F,M1r,M2r);
+    }
 
     cout << endl << "-------" << endl;
     cout.precision(17);
@@ -234,8 +243,18 @@ int main(int argc, char **argv)
 #else
         std::chrono::monotonic_clock::time_point t_Start_Rect = std::chrono::monotonic_clock::now();
 #endif
-        cv::remap(imLeft,imLeftRect,M1l,M2l,cv::INTER_LINEAR);
-        if (stereo) cv::remap(imRight,imRightRect,M1r,M2r,cv::INTER_LINEAR);
+
+        if (isTUM) {
+            cv::cvtColor(imLeft, imLeftRect, CV_BGR2GRAY);
+            clahe->apply(imLeftRect,imLeftRect);
+            if (stereo) {
+                cv::cvtColor(imRight, imRightRect, CV_BGR2GRAY);
+                clahe->apply(imRightRect,imRightRect);
+            }
+        } else {
+            cv::remap(imLeft,imLeftRect,M1l,M2l,cv::INTER_LINEAR);
+            if (stereo) cv::remap(imRight,imRightRect,M1r,M2r,cv::INTER_LINEAR);
+        }
 
 #ifdef COMPILEDWITHC11
         std::chrono::steady_clock::time_point t_End_Rect = std::chrono::steady_clock::now();
