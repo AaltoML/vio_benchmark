@@ -7,3 +7,6 @@
 [submodule "orbslam3_runner/ORB_SLAM3"]
 	path = orbslam3_runner/ORB_SLAM3
 	url = https://github.com/AaltoVision/ORB_SLAM3.git
+[submodule "larvio_runner/LARVIO"]
+	path = larvio_runner/LARVIO
+	url = https://github.com/PetWorm/LARVIO.git
