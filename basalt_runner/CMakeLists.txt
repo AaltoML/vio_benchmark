@@ -292,6 +292,9 @@ target_link_libraries(basalt_runner
   PUBLIC basalt ${TBB_LIBRARIES} ${STD_CXX_FS} ${OpenCV_LIBS} jsonl-recorder
   PRIVATE rosbag apriltag opengv)
 
+add_executable(basalt_mapper src/mapper.cpp)
+target_link_libraries(basalt_mapper basalt pangolin jsonl-recorder)
+
 add_executable(basalt_calibrate
   basalt-mirror/src/calibrate.cpp
   basalt-mirror/src/calibration/cam_calib.cpp)
