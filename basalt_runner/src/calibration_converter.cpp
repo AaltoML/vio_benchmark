@@ -123,8 +123,9 @@ int main(int argc, char **argv) {
       cameraJson["models"].push_back(modelJson);
     }
 
-    for (size_t p = 0; p < calib.vignette[i].getKnots().size(); p++)
-      cameraJson["vignette"].push_back(calib.vignette[i].getKnots()[p](0));
+    if (calib.vignette.size() > 0)
+      for (size_t p = 0; p < calib.vignette[i].getKnots().size(); p++)
+        cameraJson["vignette"].push_back(calib.vignette[i].getKnots()[p](0));
 
     if (i == 0)
       std::cout << "imuToCameraMatrix ";
