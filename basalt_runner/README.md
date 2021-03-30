@@ -30,14 +30,14 @@ As an example, here are steps to calibrate Intel RealSense Tracking Camera T265 
 }
 ```
 5. Rename `jsonl` file to `data.jsonl`
-6. Convert videos to png files:
+6. (OPTIONAL) Calibration tool will load entire video uncompressed into RAM. If it's too large and you run out of memory, you can convert videos to png files and they are loaded on demand, drastically reducing memory required:
 ```
 mkdir video && mkdir video2
 ffmpeg -i recording-2021-03-08T09-11-23Z-video.avi -vsync 0 "video/frame_%05d.png"
 ffmpeg -i recording-2021-03-08T09-11-23Z-video2.avi -vsync 0 "video2/frame_%05d.png"
 ```
 7. Now we are ready for calibration. Detailed instructions can be found at [Basalts documentation](https://gitlab.com/VladyslavUsenko/basalt/-/blob/master/doc/Calibration.md). tl;dr press buttons on the left from top to bottom when calibrating both cameras and imu
-8. Calibrate cameras. It's recommded that in `optimize` step you use `opt_until_converge` to ensure you reach converge without mouse finger injury. Keep the command line window open so you can see what's going on.
+8. Calibrate cameras. It's recommded that in `optimize` step you use `opt_until_converge` to ensure you reach converge without mouse finger injury. Keep the command line window open so you can see what's going on. Note that entire video is loaded when you click `load_dataset` so app may be unresponsive for awhile.
 ```
 ./basalt_calibrate \
 	--dataset-path ../data/realsense-calib \

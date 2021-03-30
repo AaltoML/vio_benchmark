@@ -76,12 +76,14 @@ class JsonlVioDataset : public VioDataset {
   std::string path;
 
   bool videoInPngSeries; // When true, assumes video is stored in video/ folder as .png images
+  bool usingPreloadedVideo = false; // When true, video is loaded to ram
   std::string cam0;
   std::string cam1;
 
   std::vector<int64_t> image_timestamps;
   std::vector<int64_t> video_timestamps;
   std::unordered_map<int64_t, std::vector<std::string>> image_paths;
+  std::unordered_map<int64_t, std::vector<ImageData>> preloaded_video;
 
   Eigen::aligned_vector<AccelData> accel_data;
   Eigen::aligned_vector<GyroData> gyro_data;
@@ -126,6 +128,10 @@ class JsonlVioDataset : public VioDataset {
   size_t requestedImageIndex = 0;
   size_t videoFrameIndex = 0;
   std::vector<ImageData> get_image_data(int64_t t_ns) {
+    if (preloaded_video.find(t_ns) != preloaded_video.end()) {
+      return preloaded_video[t_ns];
+    }
+
     int framesToSkip = 0;
     if (!videoInPngSeries) {
       int64_t currentFrame = image_timestamps[requestedImageIndex++];
@@ -138,7 +144,6 @@ class JsonlVioDataset : public VioDataset {
       }
       videoFrameIndex++;
     }
-    std::vector<ImageData> res(num_cams);
 
     if (!videoInPngSeries && videoCaptures.size() == 0) {
       videoCaptures.push_back(cv::VideoCapture(cam0));
@@ -149,6 +154,7 @@ class JsonlVioDataset : public VioDataset {
       }
     }
 
+    std::vector<ImageData> res(num_cams);
     cv::Mat img;
     for (size_t i = 0; i < num_cams; i++) {
       if (videoInPngSeries) {
@@ -198,6 +204,8 @@ class JsonlVioDataset : public VioDataset {
       //   res[i].exposure = exp_it->second;
       // }
     }
+
+    if (usingPreloadedVideo) preloaded_video[t_ns] = res;
     return res;
   }
 
@@ -209,7 +217,8 @@ class JsonlVioDataset : public VioDataset {
 class JsonlIO : public DatasetIoInterface {
  public:
   bool allowImages;
-  JsonlIO(bool allowImages) : allowImages(allowImages) {}
+  bool preloadVideo;
+  JsonlIO(bool allowImages, bool preloadVideo = false) : allowImages(allowImages), preloadVideo(preloadVideo) {}
 
   bool isPng(std::string const &fullString) {
       if (fullString.length() >= 4) {
@@ -242,6 +251,7 @@ class JsonlIO : public DatasetIoInterface {
       if (data->cam0.empty()) assert(false && "No video found");
       data->num_cams = data->cam1.empty() ? 1 : 2;
     }
+    data->usingPreloadedVideo = preloadVideo && !data->videoInPngSeries; // Don't preload images
     data->path = path;
 
     std::vector<std::string> images0;
@@ -313,8 +323,8 @@ class JsonlIO : public DatasetIoInterface {
           paths.push_back(images1[currentIndex]);
         this->data->image_paths.insert({t_ns, paths});
       }
-
       this->data->image_timestamps.emplace_back(t_ns);
+      if (this->data->usingPreloadedVideo) this->data->get_image_data(t_ns); // Preload video to ram by calling it once
     };
 
     data->imu_data.clear();

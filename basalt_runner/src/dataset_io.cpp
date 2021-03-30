@@ -55,7 +55,7 @@ DatasetIoInterfacePtr DatasetIoFactory::getDatasetIo(
   } else if (dataset_type == "kitti") {
     return DatasetIoInterfacePtr(new KittiIO);
   } else if (dataset_type == "jsonl") {
-    return DatasetIoInterfacePtr(new JsonlIO(true));
+    return DatasetIoInterfacePtr(new JsonlIO(true, true));
   } else {
     std::cerr << "Dataset type " << dataset_type << " is not supported"
               << std::endl;
