@@ -327,7 +327,7 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
     return True
 
 
-def aggregateBenchmarks(args, dirs, gtColor, params, infoTxt, runId, deterministic=False):
+def aggregateBenchmarks(args, dirs, gtColor, params, infoJson, runId, deterministic=False):
     print("Aggregating benchmarks...")
 
     with open(dirs.results + "/end_positions.txt", 'w') as f:
@@ -353,6 +353,9 @@ def aggregateBenchmarks(args, dirs, gtColor, params, infoTxt, runId, determinist
     slamMapFigure = dirs.results + "/slam-maps.png"
     draw_slam_maps(map_dir=dirs.slamMaps, figure_output=slamMapFigure)
 
+    with open(infoJson) as f:
+        info = json.load(f)
+
     metricsLines = 0
     with open(metricsFile, 'r') as f:
         for line in f.readlines():
@@ -366,8 +369,7 @@ def aggregateBenchmarks(args, dirs, gtColor, params, infoTxt, runId, determinist
                 sum += float(line.strip().split(",")[1])
         mean = sum / (metricsLines - 1)
         print("mean: {}".format(mean))
-        with open(infoTxt, "a") as f:
-            f.write("mean metrics: {}\n".format(mean))
+        info["meanMetrics"] = mean
 
     # Also put summary figures to their own folder.
     Path(args.output + "/figures/").mkdir(parents=True, exist_ok=True)
@@ -399,9 +401,10 @@ def aggregateBenchmarks(args, dirs, gtColor, params, infoTxt, runId, determinist
                     # print("Opening file")
                     # subprocess.run("/usr/bin/opendiff " + f0 + " " + f1, shell=True)
 
-    # Finally print end time
-    with open(infoTxt, "a") as f:
-        f.write("end time:" + datetime.now().strftime(DATE_FORMAT) + "\n")
+    # Overwrite info file with new fields.
+    info["endTime"] = datetime.now().strftime(DATE_FORMAT)
+    with open(infoJson, "w") as f:
+        f.write(json.dumps(info, indent=4, separators=(',', ': ')))
 
 
 def loadBenchmarkSet(args, setName):
@@ -511,22 +514,33 @@ def benchmark(args, vioTrackingFn, setupFn=None, teardownFn=None):
         setupFn(args, dirs.results)
 
     if not args.skipAggregate: # When skipping aggregate, shouldn't touch any shared files
-        infoTxt = dirs.results + "/info.txt"
-        with open(infoTxt, "w") as f:
-            f.write("start time: " + datetime.now().strftime(DATE_FORMAT) + "\n")
-            # f.write("main flags: " + mainFlags + "\n")
-            if runAndCapture("command -v shasum"):
-                f.write("fingerprint:" + runAndCapture("shasum -a 256 " + dirs.results + "/main") + "\n")
-            f.write("system:" + runAndCapture("uname -a") + "\n")
-            f.write("odometry commit:"
-                + runAndCapture("git rev-parse --short HEAD")
-                + runAndCapture("git rev-parse --abbrev-ref HEAD")
-                + "\n")
+        info = {
+            "outputDirectory": dirs.results,
+            "startTime": datetime.now().strftime(DATE_FORMAT),
+        }
+        # Print only the basics, save rest to file.
+        for k, v in info.items():
+            print("{}: {}".format(k, v))
+
+        info["parameters"] = args.params
+        mainBinary = dirs.results + "/main"
+        if os.path.isfile(mainBinary) and runAndCapture("command -v shasum"):
+            info["fingerprint"] = runAndCapture("shasum -a 256 " + mainBinary)
+        info["system"] = runAndCapture("uname -a")
+
+        inGitRepository = runAndCapture("git rev-parse --is-inside-work-tree")
+        if inGitRepository == "true":
+            info["git"] = {
+                "repository": runAndCapture("basename `git rev-parse --show-toplevel`"),
+                "branch": runAndCapture("git rev-parse --abbrev-ref HEAD"),
+                "sha": runAndCapture("git rev-parse --short HEAD"),
+            }
             subprocess.run("git show > \"" + dirs.results +  "/git.odometry.show\"", shell=True)
             subprocess.run("git diff > \"" + dirs.results +  "/git.odometry.diff\"", shell=True)
             subprocess.run("git diff --staged > \"" + dirs.results +  "/git.odometry.staged.diff\"", shell=True)
-        with open(infoTxt, 'r') as f:
-            print(f.read())
+        infoJson = dirs.results + "/info.json"
+        with open(infoJson, "w") as f:
+            f.write(json.dumps(info, indent=4, separators=(',', ': ')))
 
     gtColor = groundTruthColor(args.groundTruth)
 
@@ -563,7 +577,7 @@ def benchmark(args, vioTrackingFn, setupFn=None, teardownFn=None):
                     assert(i)
 
     if not args.skipAggregate:
-        aggregateBenchmarks(args, dirs, gtColor, args.params, infoTxt, runId, args.testDeterministic)
+        aggregateBenchmarks(args, dirs, gtColor, args.params, infoJson, runId, args.testDeterministic)
 
     if teardownFn:
         teardownFn(args, dirs.results)
