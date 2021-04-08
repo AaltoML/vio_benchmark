@@ -297,7 +297,8 @@ def read_out(fn):
             if (row.get("biasMean")):
                 bga.append(to_arr(row["biasMean"]["gyroscopeAdditive"]))
                 baa.append(to_arr(row["biasMean"]["accelerometerAdditive"]))
-                bat.append(to_arr(row["biasMean"]["accelerometerTransform"]))
+                if "accelerometerTransform" in row["biasMean"]:
+                    bat.append(to_arr(row["biasMean"]["accelerometerTransform"]))
     return {
         'txyz': np.array(txyz),
         'BGA': bias_norm(np.array(bga)) if bga else 0.0,
