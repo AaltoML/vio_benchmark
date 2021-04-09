@@ -164,6 +164,11 @@ class JsonlVioDataset : public VioDataset {
           videoCaptures[i].read(img);
       }
 
+      // Works but possibly slow to read and write same matrix.
+      // if (img.type() == CV_8UC3) {
+      //   cvtColor(img, img, cv::COLOR_BGR2GRAY);
+      // }
+
       if (img.type() == CV_8UC1) {
         res[i].img.reset(new ManagedImage<uint16_t>(img.cols, img.rows));
 
@@ -184,7 +189,7 @@ class JsonlVioDataset : public VioDataset {
 
         size_t full_size = img.cols * img.rows;
         for (size_t i = 0; i < full_size; i++) {
-          int val = data_in[i * 3];
+          int val = (data_in[i * 3] + data_in[i * 3 + 1] + data_in[i * 3 + 2]) / 3;
           val = val << 8;
           data_out[i] = val;
         }
