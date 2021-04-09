@@ -71,6 +71,8 @@ tbb::concurrent_bounded_queue<basalt::PoseVelBiasState::Ptr> out_state_queue;
 std::vector<int64_t> vio_t_ns;
 Eigen::aligned_vector<Eigen::Vector3d> vio_t_w_i;
 Eigen::aligned_vector<Sophus::SE3d> vio_T_w_i;
+Eigen::aligned_vector<Eigen::Vector3d> vio_bg;
+Eigen::aligned_vector<Eigen::Vector3d> vio_ba;
 
 std::vector<int64_t> gt_t_ns;
 Eigen::aligned_vector<Eigen::Vector3d> gt_t_w_i;
@@ -323,6 +325,8 @@ int main(int argc, char** argv) {
       vio_t_ns.emplace_back(data->t_ns);
       vio_t_w_i.emplace_back(T_w_i.translation());
       vio_T_w_i.emplace_back(T_w_i);
+      vio_bg.emplace_back(bg);
+      vio_ba.emplace_back(ba);
     }
 
     std::cout << "Finished t4" << std::endl;
@@ -395,6 +399,12 @@ int main(int argc, char** argv) {
       outputJson["orientation"]["x"] = pose.unit_quaternion().x();
       outputJson["orientation"]["y"] = pose.unit_quaternion().y();
       outputJson["orientation"]["z"] = pose.unit_quaternion().z();
+      outputJson["biasMean"]["gyroscopeAdditive"]["x"] = vio_bg[i](0);
+      outputJson["biasMean"]["gyroscopeAdditive"]["y"] = vio_bg[i](1);
+      outputJson["biasMean"]["gyroscopeAdditive"]["z"] = vio_bg[i](2);
+      outputJson["biasMean"]["accelerometerAdditive"]["x"] = vio_ba[i](0);
+      outputJson["biasMean"]["accelerometerAdditive"]["y"] = vio_ba[i](1);
+      outputJson["biasMean"]["accelerometerAdditive"]["z"] = vio_ba[i](2);
       os << outputJson.dump() << std::endl;
     }
     std::cout << "Saved trajectory to " << trajectory_fmt << std::endl;
