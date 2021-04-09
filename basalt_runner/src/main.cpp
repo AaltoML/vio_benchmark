@@ -111,7 +111,7 @@ void load_calibration_basalt(const std::string& calib_path) {
 }
 
 // Feed functions
-void feed_images() {
+void feed_images(int64_t tMax) {
   std::cout << "Started input_data thread " << std::endl;
 
   for (size_t i = 0; i < vio_dataset->get_image_timestamps().size(); i++) {
@@ -123,6 +123,11 @@ void feed_images() {
     basalt::OpticalFlowInput::Ptr data(new basalt::OpticalFlowInput);
 
     data->t_ns = vio_dataset->get_image_timestamps()[i];
+    // Hack fix to Basalt crashing if IMU data ends before camera data, as may
+    // be case eg with simulated IMU data.
+    if (data->t_ns >= tMax) {
+      break;
+    }
 
     data->img_data = vio_dataset->get_image_data(data->t_ns);
 
@@ -157,6 +162,7 @@ void feed_imu(std::string inputType) {
     }
   }
   vio->imu_data_queue.push(nullptr);
+
   // os.close();
 }
 
@@ -227,16 +233,20 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (input_type == "euroc")
+  double t0 = 0.0;
+  if (input_type == "euroc") {
     load_calibration_basalt(cam_calib_path);
-  else
+  }
+  else {
     load_calibration(cam_calib_path, calib);
+    t0 = basalt::JsonlVioDataset::get_t0(dataset_path);
+  }
 
   {
     basalt::DatasetIoInterfacePtr dataset_io =
       input_type == "euroc"
       ? basalt::DatasetIoFactory::getDatasetIo("euroc")
-      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png));
+      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png, false, t0));
 
     dataset_io->read(dataset_path);
 
@@ -252,6 +262,12 @@ int main(int argc, char** argv) {
     //   gt_t_ns.push_back(vio_dataset->get_gt_timestamps()[i]);
     //   gt_t_w_i.push_back(vio_dataset->get_gt_pose_data()[i].translation());
     // }
+  }
+
+  int64_t tMax = std::numeric_limits<int64_t>::max();
+  if (input_type != "euroc") {
+    basalt::JsonlVioDataset* jsonlDataSet = dynamic_cast<basalt::JsonlVioDataset*>(vio_dataset.get());
+    tMax = jsonlDataSet->get_imu_data().back()->t_ns;
   }
 
   // const int64_t start_t_ns = vio_dataset->get_image_timestamps().front();
@@ -284,7 +300,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  std::thread t1(&feed_images);
+  std::thread t1(&feed_images, tMax);
   std::thread t2(&feed_imu, input_type);
 
   std::shared_ptr<std::thread> t3;
@@ -351,15 +367,27 @@ int main(int argc, char** argv) {
         "z": 0.0
       },
       "orientation": {
-        "zw": 0.0,
+        "w": 0.0,
         "x": 0.0,
         "y": 0.0,
         "z": 0.0
+      },
+      "biasMean": {
+        "gyroscopeAdditive": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "accelerometerAdditive": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
       }
     })"_json;
     for (size_t i = 0; i < vio_t_ns.size(); i++) {
       const Sophus::SE3d& pose = vio_T_w_i[i];
-      outputJson["time"] = vio_t_ns[i] * NS_TO_SECONDS;
+      outputJson["time"] = vio_t_ns[i] * NS_TO_SECONDS + t0;
       outputJson["position"]["x"] = pose.translation().x();
       outputJson["position"]["y"] = pose.translation().y();
       outputJson["position"]["z"] = pose.translation().z();
