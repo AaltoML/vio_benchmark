@@ -164,6 +164,11 @@ class JsonlVioDataset : public VioDataset {
           videoCaptures[i].read(img);
       }
 
+      // Works but possibly slow to read and write same matrix.
+      // if (img.type() == CV_8UC3) {
+      //   cvtColor(img, img, cv::COLOR_BGR2GRAY);
+      // }
+
       if (img.type() == CV_8UC1) {
         res[i].img.reset(new ManagedImage<uint16_t>(img.cols, img.rows));
 
@@ -184,7 +189,7 @@ class JsonlVioDataset : public VioDataset {
 
         size_t full_size = img.cols * img.rows;
         for (size_t i = 0; i < full_size; i++) {
-          int val = data_in[i * 3];
+          int val = (data_in[i * 3] + data_in[i * 3 + 1] + data_in[i * 3 + 2]) / 3;
           val = val << 8;
           data_out[i] = val;
         }
@@ -209,6 +214,16 @@ class JsonlVioDataset : public VioDataset {
     return res;
   }
 
+  // Basalt seems to crash a bit after being fed negative timestamps.
+  // So get the smallest timestamp and subtract it from inputs and add to outputs.
+  static double get_t0(const std::string &path) {
+    std::string jsonlPath = joinUnixPath(path, "data.jsonl");
+    JsonlReader reader;
+    double t0 = reader.getSmallestTimestamp(jsonlPath);
+    assert(t0 < std::numeric_limits<double>::infinity());
+    return t0;
+  }
+
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   friend class JsonlIO;
@@ -218,7 +233,12 @@ class JsonlIO : public DatasetIoInterface {
  public:
   bool allowImages;
   bool preloadVideo;
-  JsonlIO(bool allowImages, bool preloadVideo = false) : allowImages(allowImages), preloadVideo(preloadVideo) {}
+  double t0;
+  JsonlIO(bool allowImages, bool preloadVideo = false, double t0 = 0.0) :
+    allowImages(allowImages),
+    preloadVideo(preloadVideo),
+    t0(t0)
+  {}
 
   bool isPng(std::string const &fullString) {
       if (fullString.length() >= 4) {
@@ -275,7 +295,8 @@ class JsonlIO : public DatasetIoInterface {
       // TODO: Move this out? Now IMU data is stored twice
       double time,
       double gx, double gy, double gz,
-      double ax, double ay, double az) {
+      double ax, double ay, double az)
+    {
       int64_t t_ns = time * SECONDS_TO_NS;
       basalt::ImuData::Ptr imu(new basalt::ImuData);
       imu->t_ns = t_ns;
@@ -292,12 +313,12 @@ class JsonlIO : public DatasetIoInterface {
       this->data->gyro_data.back().data = imu->gyro;
     };
 
-    reader.onAccelerometer = [&imuSync](double time, double x, double y, double z) {
-      imuSync.addFollower(time, x, y, z);
+    reader.onAccelerometer = [this, &imuSync](double time, double x, double y, double z) {
+      imuSync.addFollower(time - t0, x, y, z);
     };
 
-    reader.onGyroscope = [&imuSync](double time, double x, double y, double z) {
-      imuSync.addLeader(time, x, y, z);
+    reader.onGyroscope = [this, &imuSync](double time, double x, double y, double z) {
+      imuSync.addLeader(time - t0, x, y, z);
     };
 
     size_t index = 0;
@@ -305,7 +326,7 @@ class JsonlIO : public DatasetIoInterface {
       assert(frames.size() > 0);
       size_t currentIndex = index;
       index++;
-      int64_t t_ns = frames[0].time * SECONDS_TO_NS;
+      int64_t t_ns = (frames[0].time - t0) * SECONDS_TO_NS;
       if (!this->data->videoInPngSeries) // Keep track of all frames so we can skip bad ones later
         data->video_timestamps.push_back(t_ns);
       // Skip frames before first full IMU sample and/or lower/identical timestamps, otherwise Basalt crashes
@@ -330,7 +351,6 @@ class JsonlIO : public DatasetIoInterface {
     data->imu_data.clear();
     data->image_timestamps.clear();
 
-    // std::cout << "Reading: " << path << std::endl;
     reader.read(joinUnixPath(path, "data.jsonl"));
 
     // TODO: Support ground truth

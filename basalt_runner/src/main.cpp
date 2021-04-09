@@ -71,6 +71,8 @@ tbb::concurrent_bounded_queue<basalt::PoseVelBiasState::Ptr> out_state_queue;
 std::vector<int64_t> vio_t_ns;
 Eigen::aligned_vector<Eigen::Vector3d> vio_t_w_i;
 Eigen::aligned_vector<Sophus::SE3d> vio_T_w_i;
+Eigen::aligned_vector<Eigen::Vector3d> vio_bg;
+Eigen::aligned_vector<Eigen::Vector3d> vio_ba;
 
 std::vector<int64_t> gt_t_ns;
 Eigen::aligned_vector<Eigen::Vector3d> gt_t_w_i;
@@ -111,7 +113,7 @@ void load_calibration_basalt(const std::string& calib_path) {
 }
 
 // Feed functions
-void feed_images() {
+void feed_images(int64_t tMax) {
   std::cout << "Started input_data thread " << std::endl;
 
   for (size_t i = 0; i < vio_dataset->get_image_timestamps().size(); i++) {
@@ -123,6 +125,11 @@ void feed_images() {
     basalt::OpticalFlowInput::Ptr data(new basalt::OpticalFlowInput);
 
     data->t_ns = vio_dataset->get_image_timestamps()[i];
+    // Hack fix to Basalt crashing if IMU data ends before camera data, as may
+    // be case eg with simulated IMU data.
+    if (data->t_ns >= tMax) {
+      break;
+    }
 
     data->img_data = vio_dataset->get_image_data(data->t_ns);
 
@@ -157,6 +164,7 @@ void feed_imu(std::string inputType) {
     }
   }
   vio->imu_data_queue.push(nullptr);
+
   // os.close();
 }
 
@@ -227,16 +235,20 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (input_type == "euroc")
+  double t0 = 0.0;
+  if (input_type == "euroc") {
     load_calibration_basalt(cam_calib_path);
-  else
+  }
+  else {
     load_calibration(cam_calib_path, calib);
+    t0 = basalt::JsonlVioDataset::get_t0(dataset_path);
+  }
 
   {
     basalt::DatasetIoInterfacePtr dataset_io =
       input_type == "euroc"
       ? basalt::DatasetIoFactory::getDatasetIo("euroc")
-      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png));
+      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png, false, t0));
 
     dataset_io->read(dataset_path);
 
@@ -252,6 +264,12 @@ int main(int argc, char** argv) {
     //   gt_t_ns.push_back(vio_dataset->get_gt_timestamps()[i]);
     //   gt_t_w_i.push_back(vio_dataset->get_gt_pose_data()[i].translation());
     // }
+  }
+
+  int64_t tMax = std::numeric_limits<int64_t>::max();
+  if (input_type != "euroc") {
+    basalt::JsonlVioDataset* jsonlDataSet = dynamic_cast<basalt::JsonlVioDataset*>(vio_dataset.get());
+    tMax = jsonlDataSet->get_imu_data().back()->t_ns;
   }
 
   // const int64_t start_t_ns = vio_dataset->get_image_timestamps().front();
@@ -284,7 +302,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  std::thread t1(&feed_images);
+  std::thread t1(&feed_images, tMax);
   std::thread t2(&feed_imu, input_type);
 
   std::shared_ptr<std::thread> t3;
@@ -307,6 +325,8 @@ int main(int argc, char** argv) {
       vio_t_ns.emplace_back(data->t_ns);
       vio_t_w_i.emplace_back(T_w_i.translation());
       vio_T_w_i.emplace_back(T_w_i);
+      vio_bg.emplace_back(bg);
+      vio_ba.emplace_back(ba);
     }
 
     std::cout << "Finished t4" << std::endl;
@@ -351,15 +371,27 @@ int main(int argc, char** argv) {
         "z": 0.0
       },
       "orientation": {
-        "zw": 0.0,
+        "w": 0.0,
         "x": 0.0,
         "y": 0.0,
         "z": 0.0
+      },
+      "biasMean": {
+        "gyroscopeAdditive": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "accelerometerAdditive": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
       }
     })"_json;
     for (size_t i = 0; i < vio_t_ns.size(); i++) {
       const Sophus::SE3d& pose = vio_T_w_i[i];
-      outputJson["time"] = vio_t_ns[i] * NS_TO_SECONDS;
+      outputJson["time"] = vio_t_ns[i] * NS_TO_SECONDS + t0;
       outputJson["position"]["x"] = pose.translation().x();
       outputJson["position"]["y"] = pose.translation().y();
       outputJson["position"]["z"] = pose.translation().z();
@@ -367,6 +399,12 @@ int main(int argc, char** argv) {
       outputJson["orientation"]["x"] = pose.unit_quaternion().x();
       outputJson["orientation"]["y"] = pose.unit_quaternion().y();
       outputJson["orientation"]["z"] = pose.unit_quaternion().z();
+      outputJson["biasMean"]["gyroscopeAdditive"]["x"] = vio_bg[i](0);
+      outputJson["biasMean"]["gyroscopeAdditive"]["y"] = vio_bg[i](1);
+      outputJson["biasMean"]["gyroscopeAdditive"]["z"] = vio_bg[i](2);
+      outputJson["biasMean"]["accelerometerAdditive"]["x"] = vio_ba[i](0);
+      outputJson["biasMean"]["accelerometerAdditive"]["y"] = vio_ba[i](1);
+      outputJson["biasMean"]["accelerometerAdditive"]["z"] = vio_ba[i](2);
       os << outputJson.dump() << std::endl;
     }
     std::cout << "Saved trajectory to " << trajectory_fmt << std::endl;
