@@ -74,7 +74,6 @@ int main(int argc, char **argv) {
     json cameraJson;
 
     if (modelName == "kb4") {
-      json modelJson;
       fisheye = true;
       // fx, fy, cx, cy, k1, k2, k3, k4
       if (i == 0) {
@@ -104,23 +103,20 @@ int main(int argc, char **argv) {
           else std::cout << ",";
         }
       }
-      modelJson["name"] = "kannala-brandt4";
-      modelJson["focalLengthX"] = params(0);
-      modelJson["focalLengthY"] = params(1);
-      modelJson["principalPointX"] = params(2);
-      modelJson["principalPointY"] = params(3);
-      modelJson["distortionCoefficient"] = {params(4), params(5), params(6), params(7)};
-      cameraJson["models"].push_back(modelJson);
+      cameraJson["model"] = "kannala-brandt4";
+      cameraJson["focalLengthX"] = params(0);
+      cameraJson["focalLengthY"] = params(1);
+      cameraJson["principalPointX"] = params(2);
+      cameraJson["principalPointY"] = params(3);
+      cameraJson["distortionCoefficient"] = {params(4), params(5), params(6), params(7)};
     } else if (modelName == "ds") {
-      json modelJson;
-      modelJson["name"] = "doublesphere";
-      modelJson["focalLengthX"] = params(0);
-      modelJson["focalLengthY"] = params(1);
-      modelJson["principalPointX"] = params(2);
-      modelJson["principalPointY"] = params(3);
-      modelJson["xi"] = params(4);
-      modelJson["alpha"] = params(5);
-      cameraJson["models"].push_back(modelJson);
+      cameraJson["model"] = "doublesphere";
+      cameraJson["focalLengthX"] = params(0);
+      cameraJson["focalLengthY"] = params(1);
+      cameraJson["principalPointX"] = params(2);
+      cameraJson["principalPointY"] = params(3);
+      cameraJson["xi"] = params(4);
+      cameraJson["alpha"] = params(5);
     }
 
     if (calib.vignette.size() > 0)

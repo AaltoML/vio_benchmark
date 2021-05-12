@@ -50,21 +50,17 @@
                     1.0
                 ]
             ],
-            "models": [
-                {
-                    "distortionCoefficient": [
-                        -0.004163756227304365,
-                        0.023273557894123276,
-                        -0.026733141217968524,
-                        0.01126573254869044
-                    ],
-                    "focalLengthX": 460.9262971225624,
-                    "focalLengthY": 459.5700242507205,
-                    "name": "kannala-brandt4",
-                    "principalPointX": 365.9061043328824,
-                    "principalPointY": 249.33857168667237
-                }
-            ]
+            "distortionCoefficient": [
+                -0.004163756227304365,
+                0.023273557894123276,
+                -0.026733141217968524,
+                0.01126573254869044
+            ],
+            "focalLengthX": 460.9262971225624,
+            "focalLengthY": 459.5700242507205,
+            "model": "kannala-brandt4",
+            "principalPointX": 365.9061043328824,
+            "principalPointY": 249.33857168667237
         },
         {
             "imuToCamera": [
@@ -93,21 +89,17 @@
                     1.0
                 ]
             ],
-            "models": [
-                {
-                    "distortionCoefficient": [
-                        0.005333084490869123,
-                        -0.003336754709104685,
-                        0.0031677933263145816,
-                        0.0006847374992335783
-                    ],
-                    "focalLengthX": 459.47794947378173,
-                    "focalLengthY": 458.09609103596574,
-                    "name": "kannala-brandt4",
-                    "principalPointX": 379.4214446868492,
-                    "principalPointY": 255.97949802541788
-                }
-            ]
+            "distortionCoefficient": [
+                0.005333084490869123,
+                -0.003336754709104685,
+                0.0031677933263145816,
+                0.0006847374992335783
+            ],
+            "focalLengthX": 459.47794947378173,
+            "focalLengthY": 458.09609103596574,
+            "model": "kannala-brandt4",
+            "principalPointX": 379.4214446868492,
+            "principalPointY": 255.97949802541788
         }
     ],
     "gyroscope": {
