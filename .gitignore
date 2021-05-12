@@ -1,4 +1,6 @@
 /data
+/basalt_runner/download
+/basalt_runner/results
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
