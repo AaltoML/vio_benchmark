@@ -20,40 +20,34 @@ void load_calibration(std::string calib_path, basalt::Calibration<double> &calib
           imuToCamera(r, c) = camera["imuToCamera"][r][c].get<double>();
       calib.T_i_c.push_back(Sophus::SE3<double>(imuToCamera).inverse());
     }
-    if (camera.find("models") != camera.end()) {
-      auto models = camera["models"].get<json>();
-      for (auto mit = models.begin(); mit != models.end(); ++mit) {
-        auto &model = *mit;
-        std::string name = model["name"].get<std::string>();
-        // TODO: Add missing camera models
-        if (name == "doublesphere") {
-          Eigen::Matrix<double, 6, 1> params; // fx, fy, cx, cy, xi, alpha
-          params <<
-            model["focalLengthX"].get<double>(),
-            model["focalLengthY"].get<double>(),
-            model["principalPointX"].get<double>(),
-            model["principalPointY"].get<double>(),
-            model["xi"].get<double>(),
-            model["alpha"].get<double>();
-          basalt::GenericCamera<double> genCamera;
-          genCamera.variant = basalt::DoubleSphereCamera(params);
-          calib.intrinsics.push_back(genCamera);
-        } else if (name == "kannala-brandt4") {
-          Eigen::Matrix<double, 8, 1> params; // fx, fy, cx, cy, kb0, kb1, kb2, kb3
-          params <<
-            model["focalLengthX"].get<double>(),
-            model["focalLengthY"].get<double>(),
-            model["principalPointX"].get<double>(),
-            model["principalPointY"].get<double>(),
-            model["distortionCoefficient"][0].get<double>(),
-            model["distortionCoefficient"][1].get<double>(),
-            model["distortionCoefficient"][2].get<double>(),
-            model["distortionCoefficient"][3].get<double>();
-          basalt::GenericCamera<double> genCamera;
-          genCamera.variant = basalt::KannalaBrandtCamera4(params);
-          calib.intrinsics.push_back(genCamera);
-        }
-      }
+    std::string name = camera["model"].get<std::string>();
+    // TODO: Add missing camera models
+    if (name == "doublesphere") {
+      Eigen::Matrix<double, 6, 1> params; // fx, fy, cx, cy, xi, alpha
+      params <<
+        camera["focalLengthX"].get<double>(),
+        camera["focalLengthY"].get<double>(),
+        camera["principalPointX"].get<double>(),
+        camera["principalPointY"].get<double>(),
+        camera["xi"].get<double>(),
+        camera["alpha"].get<double>();
+      basalt::GenericCamera<double> genCamera;
+      genCamera.variant = basalt::DoubleSphereCamera(params);
+      calib.intrinsics.push_back(genCamera);
+    } else if (name == "kannala-brandt4") {
+      Eigen::Matrix<double, 8, 1> params; // fx, fy, cx, cy, kb0, kb1, kb2, kb3
+      params <<
+        camera["focalLengthX"].get<double>(),
+        camera["focalLengthY"].get<double>(),
+        camera["principalPointX"].get<double>(),
+        camera["principalPointY"].get<double>(),
+        camera["distortionCoefficient"][0].get<double>(),
+        camera["distortionCoefficient"][1].get<double>(),
+        camera["distortionCoefficient"][2].get<double>(),
+        camera["distortionCoefficient"][3].get<double>();
+      basalt::GenericCamera<double> genCamera;
+      genCamera.variant = basalt::KannalaBrandtCamera4(params);
+      calib.intrinsics.push_back(genCamera);
     }
     if (camera.find("vignette") != camera.end()) {
        // TODO: These numbers shouldn't matter with vignette?
