@@ -1,4 +1,5 @@
 #!/bin/bash
+# Based on <https://gitlab.com/VladyslavUsenko/basalt/-/blob/master/doc/Calibration.md#uzh-dataset>
 set -euo pipefail
 
 CAM_TYPE=kb4

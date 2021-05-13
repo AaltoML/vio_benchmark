@@ -1,5 +1,5 @@
 #!/bin/bash
-# <https://gitlab.com/VladyslavUsenko/basalt/-/blob/master/doc/Calibration.md#uzh-dataset>
+# Based on <https://gitlab.com/VladyslavUsenko/basalt/-/blob/master/doc/Calibration.md#uzh-dataset>
 set -euo pipefail
 
 mkdir -p download/uzh

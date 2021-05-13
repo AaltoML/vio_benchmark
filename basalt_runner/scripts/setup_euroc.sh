@@ -1,5 +1,5 @@
 #!/bin/bash
-# <https://gitlab.com/VladyslavUsenko/basalt/-/blob/master/doc/Calibration.md#euroc-dataset>
+# Based on <https://gitlab.com/VladyslavUsenko/basalt/-/blob/master/doc/Calibration.md#euroc-dataset>
 set -euo pipefail
 
 mkdir -p download/euroc
