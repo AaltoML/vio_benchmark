@@ -41,10 +41,10 @@ void load_calibration(std::string calib_path, basalt::Calibration<double> &calib
         camera["focalLengthY"].get<double>(),
         camera["principalPointX"].get<double>(),
         camera["principalPointY"].get<double>(),
-        camera["distortionCoefficient"][0].get<double>(),
-        camera["distortionCoefficient"][1].get<double>(),
-        camera["distortionCoefficient"][2].get<double>(),
-        camera["distortionCoefficient"][3].get<double>();
+        camera["distortionCoefficients"][0].get<double>(),
+        camera["distortionCoefficients"][1].get<double>(),
+        camera["distortionCoefficients"][2].get<double>(),
+        camera["distortionCoefficients"][3].get<double>();
       basalt::GenericCamera<double> genCamera;
       genCamera.variant = basalt::KannalaBrandtCamera4(params);
       calib.intrinsics.push_back(genCamera);

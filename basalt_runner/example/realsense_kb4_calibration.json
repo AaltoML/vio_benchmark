@@ -50,7 +50,7 @@
                     1.0
                 ]
             ],
-            "distortionCoefficient": [
+            "distortionCoefficients": [
                 -0.008465990623745272,
                 0.04818981646946315,
                 -0.04604852761536517,
@@ -89,7 +89,7 @@
                     1.0
                 ]
             ],
-            "distortionCoefficient": [
+            "distortionCoefficients": [
                 -0.008390880757646806,
                 0.04953292973688621,
                 -0.04709416285293772,
