@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
       cameraJson["focalLengthY"] = params(1);
       cameraJson["principalPointX"] = params(2);
       cameraJson["principalPointY"] = params(3);
-      cameraJson["distortionCoefficient"] = {params(4), params(5), params(6), params(7)};
+      cameraJson["distortionCoefficients"] = {params(4), params(5), params(6), params(7)};
     } else if (modelName == "ds") {
       cameraJson["model"] = "doublesphere";
       cameraJson["focalLengthX"] = params(0);
