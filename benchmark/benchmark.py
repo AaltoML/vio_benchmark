@@ -47,6 +47,7 @@ def getArgParser():
     parser.add_argument("-offsetTracks", help="When enabled, tracks are stacked instead of overlaid", action="store_true")
     parser.add_argument('-metricSet', type=str, default='default', choices={'default', 'xy_only', 'full_2d_align', 'full_3d_align', 'full_sim3'})
     parser.add_argument("-displayHostname", help="When enabled, each benchmark metrics show machine hostname", action="store_true")
+    parser.add_argument("-exportAlignedData", help="Exports aligned data to 'aligned' folder", action="store_true")
     return parser
 
 
@@ -72,7 +73,7 @@ def metricsKwargs(args, single=False):
     if single:
         kwargs = {}
     else:
-        kwargs = dict(piecewise=args.piecewise, offsetTracks=args.offsetTracks, comparisonList=args.compare)
+        kwargs = dict(piecewise=args.piecewise, offsetTracks=args.offsetTracks, comparisonList=args.compare, exportAlignedData=args.exportAlignedData)
 
     kwargs['metric_set'] = args.metricSet
     return kwargs

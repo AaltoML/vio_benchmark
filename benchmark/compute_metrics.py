@@ -8,6 +8,8 @@ from collections import OrderedDict
 import numpy as np
 import json
 import math
+from pathlib import Path
+
 
 SHADES_OF_BLUE = ['blue', 'darkturquoise', 'darkorchid', 'dodgerblue', 'darkslateblue']
 
@@ -318,8 +320,16 @@ def doOffset(trackOffset, maxHeight, dataset, ax):
     return trackOffset - maxHeight
 
 
-def plot(benchmarkSet, gt, plot_axis, ax1=1, ax2=2, plot_title=None, gt_color='orange', piecewise=True, offsetTracks=False, **alignment_kwargs):
+def exportTsvPaths(data, name):
+    with open(name + ".tsv", "w") as f:
+        f.write("time\tx\ty\tz\n")
+        for row in data:
+            f.write("{}\t{}\t{}\t{}\n".format(row[0], row[1], row[2], row[3]))
+
+
+def plot(benchmarkSet, gt, plot_axis, ax1=1, ax2=2, plot_title=None, gt_color='orange', piecewise=True, offsetTracks=False, exportPath=None, **alignment_kwargs):
     import matplotlib.pyplot as plt
+    title_str = plot_title if plot_title else ""
     if plot_axis is None:
         axis = plt
         is_subplot = False
@@ -331,15 +341,18 @@ def plot(benchmarkSet, gt, plot_axis, ax1=1, ax2=2, plot_title=None, gt_color='o
     groundtruth = None
     maxHeight = 0
     if gt is not None:
-        # TODO: Use this all the time, because most of the time there is more horzontal space?
         groundtruth = gt['datasets'][0]['data']
+        if exportPath: exportTsvPaths(groundtruth, "{}/{}-{}".format(exportPath, title_str,  gt['datasets'][0]['name']))
+        # TODO: Use this all the time, because most of the time there is more horzontal space?
         if offsetTracks: optimalRotation(groundtruth, ax1, ax2)
         maxHeight = getHeight(groundtruth, ax2)
         for dataset in gt['datasets'][1:]:
             dataset['data'] = align_to_gt(dataset['data'], groundtruth, -1, **alignment_kwargs)
+            if exportPath: exportTsvPaths(dataset['data'], "{}/{}-{}".format(exportPath, title_str,  dataset['name']))
             maxHeight = max(maxHeight, getHeight(dataset['data'], ax2))
         for index, bench in enumerate(benchmarkSet["benchmarks"]):
             bench["aligned"] = align_to_gt(bench["out"]['txyz'], groundtruth, -1, **alignment_kwargs)
+            if exportPath: exportTsvPaths(bench["aligned"], "{}/{}-{}".format(exportPath, title_str,  bench["paramSet"]))
             maxHeight = max(maxHeight, getHeight(bench["aligned"], ax2))
         maxHeight = maxHeight * 1.05 # 5% padding
 
@@ -391,7 +404,6 @@ def plot(benchmarkSet, gt, plot_axis, ax1=1, ax2=2, plot_title=None, gt_color='o
         for item in axis.get_xticklabels() + axis.get_yticklabels():
             item.set_size(6)
     else: set_title = axis.title
-    title_str = plot_title if plot_title else ""
     for case in benchmarkSet["benchmarks"]:
         if case.get("metric"):
             if title_str:
@@ -415,10 +427,16 @@ def figureSize(num_plots):
 
 
 def compute_metrics(folder, casename=None, show_plot=None, z_axis=None, columns=0, figure_output=None, title=None,
-    metricFile=None, comparisonList=None, piecewise=False, offsetTracks=False, metric_set='default'):
+    metricFile=None, comparisonList=None, piecewise=False, offsetTracks=False, metric_set='default', exportAlignedData=False):
     do_plot = show_plot or figure_output is not None
     plot_kwargs = metric_set_to_alignment_params(metric_set)
     if z_axis: plot_kwargs['ax2'] = 3
+
+    if exportAlignedData:
+        exportPath = folder + "/aligned"
+        Path(exportPath).mkdir(parents=True, exist_ok=True)
+    else:
+        exportPath = None
 
     if do_plot:
         if not show_plot:
@@ -508,7 +526,7 @@ def compute_metrics(folder, casename=None, show_plot=None, z_axis=None, columns=
                 if not metrics.get(case["paramSet"]):
                     metrics[case["paramSet"]] = []
                 metrics[case["paramSet"]].append(case["metric"])
-        plot(benchmarkSet, gt, plot_axis, piecewise=piecewise, offsetTracks=offsetTracks, **plot_kwargs)
+        plot(benchmarkSet, gt, plot_axis, piecewise=piecewise, offsetTracks=offsetTracks, exportPath=exportPath, **plot_kwargs)
         plot_axis.legend()
 
     if do_plot:
