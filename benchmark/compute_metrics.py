@@ -58,6 +58,20 @@ def getColor(datasetName="ours", index=0):
     else:
         return EXTERNAL_COLORS[datasetName.lower()]
 
+def wordWrap(s):
+    LINE_MAX_LENGTH = 150
+    out = ""
+    l = 0
+    for i, token in enumerate(s.split(" ")):
+        l += len(token) + 1
+        if l > LINE_MAX_LENGTH:
+            out += "\n"
+            l = 0
+        elif i > 0:
+            out += " "
+        out += token
+    return out
+
 # Use covariance to rotate data to minimize height
 def optimalRotation(data, ax1=1, ax2=2):
     dataxy = data[:,[ax1, ax2]]
@@ -536,7 +550,7 @@ def compute_metrics(folder, casename=None, show_plot=None, z_axis=None, columns=
             metrics_to_string(agg_metrics(metrics[setName]), short=False))
             for setName in sorted(metrics.keys())])
         if title is not None:
-            suptitle = title + "\n" +  suptitle
+            suptitle = wordWrap(title) + "\n" +  suptitle
         figure.suptitle(suptitle, fontsize=12)
         plt.tight_layout(rect=[0, 0.03, 1, 0.95])
         if figure_output: figure.savefig(figure_output)
