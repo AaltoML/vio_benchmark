@@ -16,16 +16,30 @@ You don't need to build ORB_SLAM3 separately, it's included in the step 3.
 
 First run will create a binary version of ORB vocabulary for MUCH faster loading.
 
-Run the benchmark, for example, asuming your `EuroC` data is in `~/euroc_benchmarks` directory in converted format:
+Run the benchmark, for example, asuming your `EuroC` data is in `./data` directory in converted format:
 
 ```
-	python run_benchmark.py euroc-mh-01-easy \
-		-dir ~/euroc_benchmarks/ \
-		-vocab ./ORB_SLAM3/Vocabulary \
-		-config ./ORB_SLAM3/Examples/Stereo-Inertial/EuRoC.yaml \
-		-metricSet full_3d_align \
-		-compare groundTruth,slam \
-		-thread 1
+python run_benchmark.py euroc-mh-01-easy \
+	-dir ./data \
+	-vocab ./ORB_SLAM3/Vocabulary \
+	-config ./ORB_SLAM3/Examples/Stereo-Inertial/EuRoC.yaml \
+	-metricSet full_3d_align \
+	-compare groundTruth,slam \
+	-threads 1
+```
+
+To run full EuroC set:
+
+```
+python run_benchmark.py -set euroc \
+	-dir ./data \
+	-setDir ../benchmark/sets \
+	-vocab ./ORB_SLAM3/Vocabulary \
+	-config ./ORB_SLAM3/Examples/Stereo-Inertial/EuRoC.yaml \
+	-metricSet full_3d_align \
+	-compare groundTruth,slam \
+	-exportAlignedData \
+	-threads 1
 ```
 
 ## License
