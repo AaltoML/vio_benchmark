@@ -11,7 +11,21 @@ You don't need to build Basalt separately, it's included in the step 2.
 
 ## Basalt Runner
 
-Finally run the benchmark, for example `python run_benchmark.py euroc-mh-01-easy -dir ~/euroc_benchmarks/ -calib ./example/euroc_kb4_calibration.json -config ./basalt-mirror/data/euroc_config.json`, asuming your `EuroC` data is in `~/euroc_benchmarks` directory in converted format.
+Finally run the benchmark, for example `python run_benchmark.py euroc-mh-01-easy -dir ./data/ -calib ./example/euroc_kb4_calibration.json -config ./basalt-mirror/data/euroc_config.json`, asuming your `EuroC` data is in `./data` directory in converted format.
+
+For full EuroC use:
+```
+python run_benchmark.py -set euroc \
+	-dir ./data \
+	-setDir ../benchmark/sets \
+	-calib ./basalt-mirror/data/euroc_ds_calib.json \
+	-config ./basalt-mirror/data/euroc_config.json \
+	-metricSet full_3d_align \
+	-compare groundTruth,slam \
+	-postprocess \
+	-exportAlignedData \
+	-threads 1
+```
 
 ## Basalt Calibration
 

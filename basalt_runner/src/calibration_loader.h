@@ -5,7 +5,36 @@
 #include <basalt/calibration/calibration.hpp>
 #include "dataset_io_jsonl.h"
 
-void load_calibration(std::string calib_path, basalt::Calibration<double> &calib) {
+void load_calibration_basalt(const std::string& calib_path, basalt::Calibration<double> &calib) {
+  std::cout << "Loading Basalt calibration" << std::endl;
+  std::ifstream os(calib_path, std::ios::binary);
+  if (os.is_open()) {
+    cereal::JSONInputArchive archive(os);
+    archive(calib);
+    for (size_t i = 0; i < calib.T_i_c.size(); i++) {
+      std::cout << std::setprecision(18) << "T_i_c " << calib.T_i_c[i].matrix() << std::endl;
+    }
+    std::cout << "Loaded camera with " << calib.intrinsics.size() << " cameras"
+              << std::endl;
+  } else {
+    std::cerr << "could not load camera calibration " << calib_path
+              << std::endl;
+    std::abort();
+  }
+}
+
+bool isBasaltCalibrationFile(std::string calib_path) {
+    std::ifstream ifs(calib_path);
+    nlohmann::json config = nlohmann::json::parse(ifs);
+    return config.find("value0") != config.end();
+}
+
+void load_calibration(const std::string& calib_path, basalt::Calibration<double> &calib) {
+  if (isBasaltCalibrationFile(calib_path)) {
+    load_calibration_basalt(calib_path, calib);
+    return;
+  }
+
   std::cout << "Loading standard calibration" << std::endl;
   using json = nlohmann::json;
   std::ifstream ifs(calib_path);
@@ -104,3 +133,5 @@ void load_calibration(std::string calib_path, basalt::Calibration<double> &calib
   // }
   // os.close();
 }
+
+

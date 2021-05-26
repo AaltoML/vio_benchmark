@@ -94,23 +94,6 @@ basalt::VioConfig vio_config;
 basalt::OpticalFlowBase::Ptr opt_flow_ptr;
 basalt::VioEstimatorBase::Ptr vio;
 
-void load_calibration_basalt(const std::string& calib_path) {
-  std::cout << "Loading basalt calibration" << std::endl;
-  std::ifstream os(calib_path, std::ios::binary);
-  if (os.is_open()) {
-    cereal::JSONInputArchive archive(os);
-    archive(calib);
-    for (size_t i = 0; i < calib.T_i_c.size(); i++) {
-      std::cout << std::setprecision(18) << "T_i_c " << calib.T_i_c[i].matrix() << std::endl;
-    }
-    std::cout << "Loaded camera with " << calib.intrinsics.size() << " cameras"
-              << std::endl;
-  } else {
-    std::cerr << "could not load camera calibration " << calib_path
-              << std::endl;
-    std::abort();
-  }
-}
 
 // Feed functions
 void feed_images(int64_t tMax) {
@@ -235,21 +218,17 @@ int main(int argc, char** argv) {
     }
   }
 
+  load_calibration(cam_calib_path, calib);
   double t0 = 0.0;
-  if (input_type == "euroc") {
-    load_calibration_basalt(cam_calib_path);
-  }
-  else {
-    load_calibration(cam_calib_path, calib);
-    t0 = basalt::JsonlVioDataset::get_t0(dataset_path);
-  }
-
   {
-    basalt::DatasetIoInterfacePtr dataset_io =
-      input_type == "euroc"
-      ? basalt::DatasetIoFactory::getDatasetIo("euroc")
-      : basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png, false, t0));
-
+    basalt::DatasetIoInterfacePtr dataset_io;
+    if (input_type == "euroc") {
+      dataset_io = basalt::DatasetIoFactory::getDatasetIo("euroc");
+    } else {
+      t0 = basalt::JsonlVioDataset::get_t0(dataset_path);
+      dataset_io = basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png, false, t0));
+    }
+    
     dataset_io->read(dataset_path);
 
     vio_dataset = dataset_io->get_data();

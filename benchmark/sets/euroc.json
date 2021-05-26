@@ -1,0 +1,15 @@
+{
+    "benchmarks": [
+        {"folder": "euroc-mh-01-easy"},
+        {"folder": "euroc-mh-02-easy"},
+        {"folder": "euroc-mh-03-medium"},
+        {"folder": "euroc-mh-04-difficult"},
+        {"folder": "euroc-mh-05-difficult"},
+        {"folder": "euroc-v1-01-easy"},
+        {"folder": "euroc-v1-02-medium"},
+        {"folder": "euroc-v1-03-difficult"},
+        {"folder": "euroc-v2-01-easy"},
+        {"folder": "euroc-v2-02-medium"},
+        {"folder": "euroc-v2-03-difficult"}
+    ]
+}
