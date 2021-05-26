@@ -157,6 +157,7 @@ int main(int argc, char** argv) {
   std::string result_path;
   std::string config_path;
   std::string output_path;
+  std::string dataset_path;
 
   CLI::App app{"App description"};
 
@@ -166,6 +167,9 @@ int main(int argc, char** argv) {
       ->required();
 
   app.add_option("--marg-data", marg_data_path, "Path to cache folder.")
+      ->required();
+
+  app.add_option("--dataset-path", dataset_path, "Path to dataset.")
       ->required();
 
   app.add_option("--config-path", config_path, "Path to config file.");
@@ -186,6 +190,11 @@ int main(int argc, char** argv) {
 
   load_data(cam_calib_path, marg_data_path);
 
+  double t0 = 0.0;
+  if (!dataset_path.empty()) {
+    t0 = basalt::JsonlVioDataset::get_t0(dataset_path);
+  }
+  
   for (auto& kv : marg_data) {
     nrf_mapper->addMargData(kv.second);
   }
@@ -388,7 +397,7 @@ int main(int argc, char** argv) {
     for (const auto& kv : nrf_mapper->getFramePoses()) {
       const Sophus::SE3d pose = kv.second.getPose();
       constexpr double NS_TO_SECONDS = 1e-9;
-      outputJson["time"] = kv.first * NS_TO_SECONDS;
+      outputJson["time"] = kv.first * NS_TO_SECONDS + t0;
       outputJson["position"]["x"] = pose.translation().x();
       outputJson["position"]["y"] = pose.translation().y();
       outputJson["position"]["z"] = pose.translation().z();

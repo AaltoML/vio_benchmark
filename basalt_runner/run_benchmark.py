@@ -20,6 +20,7 @@ def main():
 
     def vioTrackingFn(args, benchmark, outputDir, outputFile, slamMap):
         logFile = "{}/{}/{}.txt".format(outputDir, "logs", benchmark.name)
+        logFileMapper = "{}/{}/{}_mapper.txt".format(outputDir, "logs", benchmark.name)
         margFolder = "{}/{}/{}/".format(outputDir, "margdata", benchmark.name)
         margArg = ""
         if args.postprocess:
@@ -35,12 +36,13 @@ def main():
         if args.postprocess:
             mapFn = outputFile.rsplit(".")[0] + "_map.jsonl"
             subprocess.check_call("./target/basalt_mapper"
+                    + " --dataset-path " + benchmark.dir
                     + " --show-gui 0"
                     + " --config-path " + args.config
                     + " --cam-calib " + args.calib
                     + margArg
                     + " --output-path " + mapFn
-                    + " > " + logFile + " 2>&1", shell=True)
+                    + " > " + logFileMapper + " 2>&1", shell=True)
             shutil.rmtree(margFolder)
 
     benchmark(args, vioTrackingFn, setupFn, tearDownFn)

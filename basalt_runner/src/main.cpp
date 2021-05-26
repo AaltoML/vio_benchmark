@@ -297,7 +297,7 @@ int main(int argc, char** argv) {
       // int64_t t_ns = data->t_ns;
       // std::cerr << "t_ns " << t_ns << std::endl;
       Sophus::SE3d T_w_i = data->T_w_i;
-      Eigen::Vector3d vel_w_i = data->vel_w_i;
+      // Eigen::Vector3d vel_w_i = data->vel_w_i;
       Eigen::Vector3d bg = data->bias_gyro;
       Eigen::Vector3d ba = data->bias_accel;
 
