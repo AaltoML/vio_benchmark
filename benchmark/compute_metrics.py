@@ -91,8 +91,10 @@ def get_overlapping_xyz_parts_on_same_time_grid(out, gt):
     out_t = out[:,0]
     min_t = max(np.min(out_t), np.min(gt_t))
     max_t = min(np.max(out_t), np.max(gt_t))
-    out_part = out[(out_t >= min_t) & (out_t <= max_t), :]
-    gt_part = np.hstack([np.interp(out_part[:, 0], gt_t, gt[:,i])[:, np.newaxis] for i in range(gt.shape[1])])
+    # Use the ground-truth grid because ground-truth may have gaps (GPS and prisms)
+    # and VIO developers can always increase their methods' output rate.
+    gt_part = gt[(gt_t >= min_t) & (gt_t <= max_t), :]
+    out_part = np.hstack([np.interp(gt_part[:, 0], out_t, out[:,i])[:, np.newaxis] for i in range(out.shape[1])])
     return out_part[:, 1:], gt_part[:, 1:]
 
 def align_to_gt(out, gt, rel_align_time=1/3.0, fix_origin=True, align3d=False, fix_scale=True):
@@ -223,7 +225,7 @@ def compute_piecewise_metric(out, gt, piece_len_sec=10.0, measureZError=True):
     if not measureZError:
         aligned = aligned[:,:-1]
         gt = gt[:,:-1]
-    gt, interpolated = get_overlapping_xyz_parts_on_same_time_grid(gt, aligned)
+    interpolated, gt = get_overlapping_xyz_parts_on_same_time_grid(aligned, gt)
     return rmse(gt, interpolated)
 
 def compute_metric_set(out, gt, metric_set):
@@ -237,7 +239,7 @@ def compute_metric_set(out, gt, metric_set):
         ])
     elif metric_set.startswith('full_'):
         aligned = align_to_gt(out, gt, -1, **metric_set_to_alignment_params(metric_set))
-        gt, aligned = get_overlapping_xyz_parts_on_same_time_grid(gt, aligned)
+        aligned, gt = get_overlapping_xyz_parts_on_same_time_grid(aligned, gt)
         return OrderedDict([
             ('RMSE', rmse(gt, aligned)),
             ('MAE', mean_absolute_error(gt, aligned))
