@@ -272,7 +272,7 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
     endPosFile = "{}/{}.txt".format(dirs.endpos, caseName)
     datasetInfo = "{}/{}.json".format(dirs.info, caseName)
 
-    start = time.time()
+    duration = -1
 
     failed = True
     for i in range(5): # Attempt to run benchmark 5 times if it fails
@@ -280,6 +280,7 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
         if os.path.exists(outputFile): os.remove(outputFile)
         if os.path.exists(slamMapFile): os.remove(slamMapFile)
         # Run tracking
+        start = time.time()
         vioTrackingFn(args, benchmark, dirs.results, outputFile, slamMapFile)
         duration = time.time() - start
         # Verify that output file has correct number of columns, if not retry
@@ -322,7 +323,8 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
             "dir": benchmark.dir,
             "paramSet": benchmark.paramSet,
             "origName": benchmark.origName,
-            "hostname": hostname
+            "hostname": hostname,
+            "duration": duration
         }))
 
     return True

@@ -530,6 +530,7 @@ def compute_metrics(folder, casename=None, show_plot=None, z_axis=None, columns=
                 with open("{}/results/{}.json".format(folder, name), "w") as f:
                     jsonResults = { "methods": {} }
                     jsonResults["methods"]["our"] = case["metric"]
+                    jsonResults["duration"] = case.get("duration")
                     if gt["datasets"]:
                         jsonResults["groundTruth"] = gt["datasets"][0]["name"]
                     # Compare other methods against the same ground truth.
