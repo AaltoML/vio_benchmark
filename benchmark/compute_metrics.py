@@ -531,6 +531,7 @@ def compute_metrics(folder, casename=None, show_plot=None, z_axis=None, columns=
                     jsonResults = { "methods": {} }
                     jsonResults["methods"]["our"] = case["metric"]
                     jsonResults["duration"] = case.get("duration")
+                    jsonResults["frameCount"] = case.get("frameCount")
                     if gt["datasets"]:
                         jsonResults["groundTruth"] = gt["datasets"][0]["name"]
                     # Compare other methods against the same ground truth.
