@@ -168,6 +168,7 @@ def loadBenchmarkComparisonData(benchmarkComparison, caseDir, groundTruth, jsonl
     dataRealsense= []
     dataGps = []
     dataRtkGps = []
+    frameCount = 0
     with open(jsonlFile) as f:
         for line in f.readlines():
             dataRow = json.loads(line)
@@ -197,7 +198,8 @@ def loadBenchmarkComparisonData(benchmarkComparison, caseDir, groundTruth, jsonl
             elif dataRow.get("rtkgps") is not None:
                 pos = rtkgpsConverter.convert(**dataRow["rtkgps"])
                 dataRtkGps.append([dataRow["time"], pos["x"], pos["z"], -pos["y"]])
-
+            elif dataRow.get("frames") is not None:
+                frameCount += 1
 
     dataWrite = None
     if (not benchmarkComparison or benchmarkComparison == "groundTruth") and dataGroundTruth:
@@ -259,6 +261,9 @@ def loadBenchmarkComparisonData(benchmarkComparison, caseDir, groundTruth, jsonl
             addDataSet(datasets, "RTKGPS", dataRtkGps, benchmarkComparison)
             json.dump({'datasets': datasets}, f)
 
+    return frameCount
+
+
 def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
     args = cArgs
     caseDir = benchmark.dir
@@ -297,7 +302,7 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
     if failed:
         raise Exception("Error! Failed to run benchmark 5 times")
 
-    loadBenchmarkComparisonData(benchmark.benchmarkComparison, caseDir, args.groundTruth, jsonlFile, gtCopy, gtJson, slamMapFile, outputFile)
+    frameCount = loadBenchmarkComparisonData(benchmark.benchmarkComparison, caseDir, args.groundTruth, jsonlFile, gtCopy, gtJson, slamMapFile, outputFile)
 
     metric = computeMetrics(partial(compute_metrics, folder=dirs.results, casename=caseName, figure_output=figure, **metricsKwargs(args, single=True)))
     if metric:
@@ -324,7 +329,8 @@ def singleBenchmark(benchmark, dirs, vioTrackingFn, gtColor, cArgs):
             "paramSet": benchmark.paramSet,
             "origName": benchmark.origName,
             "hostname": hostname,
-            "duration": duration
+            "duration": duration,
+            "frameCount": frameCount
         }))
 
     return True
