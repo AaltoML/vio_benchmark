@@ -85,7 +85,7 @@ void load_calibration(const std::string& calib_path, basalt::Calibration<double>
       for (auto vit = values.begin(); vit != values.end(); ++vit) {
         Eigen::Matrix<double, 1, 1> m;
         m(0) = (*vit).get<double>();
-        vignette.knots_push_back(m);
+        vignette.knotsPushBack(m);
       }
       calib.vignette.push_back(vignette);
     }

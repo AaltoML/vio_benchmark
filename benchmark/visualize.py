@@ -19,7 +19,7 @@ def addSubplot(plot, x, y, title, style=None):
 
 
 def plotDataset(folder, args):
-    jsonlFile = folder + "/data.jsonl"
+    jsonlFile = folder if folder.endswith(".jsonl") else folder + "/data.jsonl"
 
     title = os.path.basename(os.path.normpath(folder))
 
