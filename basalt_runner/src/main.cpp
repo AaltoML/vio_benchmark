@@ -66,7 +66,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // std::unordered_map<int64_t, basalt::VioVisualizationData::Ptr> vis_map;
 
 // tbb::concurrent_bounded_queue<basalt::VioVisualizationData::Ptr> out_vis_queue;
-tbb::concurrent_bounded_queue<basalt::PoseVelBiasState::Ptr> out_state_queue;
+tbb::concurrent_bounded_queue<basalt::PoseVelBiasState<double>::Ptr> out_state_queue;
 
 std::vector<int64_t> vio_t_ns;
 Eigen::aligned_vector<Eigen::Vector3d> vio_t_w_i;
@@ -131,7 +131,7 @@ void feed_imu(std::string inputType) {
   // std::ofstream os("imu_samples.txt");
   if (inputType == "euroc") {
     for (size_t i = 0; i < vio_dataset->get_gyro_data().size(); i++) {
-      basalt::ImuData::Ptr imu(new basalt::ImuData);
+      basalt::ImuData<double>::Ptr imu(new basalt::ImuData<double>);
       imu->t_ns = vio_dataset->get_gyro_data()[i].timestamp_ns;
       imu->accel = vio_dataset->get_accel_data()[i].data;
       imu->gyro = vio_dataset->get_gyro_data()[i].data;
@@ -141,7 +141,7 @@ void feed_imu(std::string inputType) {
   } else {
     basalt::JsonlVioDataset* jsonlDataSet = dynamic_cast<basalt::JsonlVioDataset*>(vio_dataset.get());
     for (size_t i = 0; i < jsonlDataSet->get_imu_data().size(); i++) {
-      basalt::ImuData::Ptr imu = jsonlDataSet->get_imu_data()[i];
+      basalt::ImuData<double>::Ptr imu = jsonlDataSet->get_imu_data()[i];
       // os << std::setprecision(18) << imu->t_ns << imu->accel << imu->gyro << std::endl;
       vio->imu_data_queue.push(imu);
     }
@@ -228,7 +228,7 @@ int main(int argc, char** argv) {
       t0 = basalt::JsonlVioDataset::get_t0(dataset_path);
       dataset_io = basalt::DatasetIoInterfacePtr(new basalt::JsonlIO(use_png, false, t0));
     }
-    
+
     dataset_io->read(dataset_path);
 
     vio_dataset = dataset_io->get_data();
@@ -287,7 +287,7 @@ int main(int argc, char** argv) {
   std::shared_ptr<std::thread> t3;
 
   std::thread t4([&]() {
-    basalt::PoseVelBiasState::Ptr data;
+    basalt::PoseVelBiasState<double>::Ptr data;
 
     while (true) {
       out_state_queue.pop(data);

@@ -87,7 +87,7 @@ class JsonlVioDataset : public VioDataset {
 
   Eigen::aligned_vector<AccelData> accel_data;
   Eigen::aligned_vector<GyroData> gyro_data;
-  Eigen::aligned_vector<ImuData::Ptr> imu_data;
+  Eigen::aligned_vector<ImuData<double>::Ptr> imu_data;
 
   std::vector<int64_t> gt_timestamps;  // ordered gt timestamps
   Eigen::aligned_vector<Sophus::SE3d>
@@ -119,7 +119,7 @@ class JsonlVioDataset : public VioDataset {
     return gt_pose_data;
   }
 
-  const Eigen::aligned_vector<ImuData::Ptr> &get_imu_data() const {
+  const Eigen::aligned_vector<ImuData<double>::Ptr> &get_imu_data() const {
       return imu_data;
   }
 
@@ -298,7 +298,7 @@ class JsonlIO : public DatasetIoInterface {
       double ax, double ay, double az)
     {
       int64_t t_ns = time * SECONDS_TO_NS;
-      basalt::ImuData::Ptr imu(new basalt::ImuData);
+      basalt::ImuData<double>::Ptr imu(new basalt::ImuData<double>);
       imu->t_ns = t_ns;
       imu->accel = Eigen::Vector3d(ax, ay, az);
       imu->gyro = Eigen::Vector3d(gx, gy, gz);
