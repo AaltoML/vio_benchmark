@@ -30,6 +30,7 @@ parser.add_argument("-rtk", help="RTK GPS, aligned using gpsTime and cut to star
 parser.add_argument("-gpstime", help="Directory containing data.jsonl with gpsTime info")
 parser.add_argument("-notrim", help="Unless this flag is set, output is trimmed based on 'frames' events", action="store_true")
 parser.add_argument("-root", help="Root directory that's prefixed in front of all given paths", default=".")
+parser.add_argument("-filternulls", help="Filters any row that contains key with null value", action="store_true")
 
 
 TIME_PADDING_SECONDS = 1.0 # Add some padding before trimming data
@@ -82,6 +83,18 @@ def readMainJSONL(outputArray, folder, rev_filter):
     return timeOffset, t0
 
 
+def filterNulls(outputArray):
+    def hasNulls(obj):
+        for k, v in obj.items():
+            if isinstance(v, dict):
+                if hasNulls(v):
+                    return True
+            if v == None:
+                return True
+        return False
+    return [row for row in outputArray if not hasNulls(row)]
+
+
 # Get lines matching filter.
 def readJSONL(outputArray, folder, filter, alignmentOffset=0, t0=0):
     if not folder:
@@ -129,8 +142,7 @@ def readRTKGPS(sortedOutputArray, rtkgpsFolder):
             rtkgps = json.loads(line)
             alignedTime = rtkgps["time"] + gpsTimeOffset
             # if alignedTime >= firstFrame and alignedTime <= lastFrame:
-            sortedOutputArray.append({
-                "rtkgps": {
+            result = { "rtkgps": {
                     "latitude": rtkgps["lat"],
                     "longitude": rtkgps["lon"],
                     "altitude": rtkgps["altitude"],
@@ -139,7 +151,12 @@ def readRTKGPS(sortedOutputArray, rtkgpsFolder):
                     "gpsTime": rtkgps["time"]
                 },
                 "time": alignedTime
-            })
+            }
+            if rtkgps.get("velocity"):
+                result["rtkgps"]["velocity"] = rtkgps["velocity"]
+                result["rtkgps"]["groundSpeed"] = rtkgps["groundSpeed"]
+                result["rtkgps"]["speedAccuracy"] = rtkgps["speedAccuracy"]
+            sortedOutputArray.append(result)
 
 
 def trimArray(sortedOutputArray):
@@ -154,7 +171,7 @@ def trimArray(sortedOutputArray):
     return [row for row in sortedOutputArray if filt(row)]
 
 
-def combineJSONL(mainFolder, outputFolder, folders, methods, rtkgpsFolder=None, trim=True):
+def combineJSONL(mainFolder, outputFolder, folders, methods, rtkgpsFolder=None, trim=True, removeNulls=False):
     outputArray = []
     offset, t0 = readMainJSONL(outputArray, mainFolder, methods)
     for folder, method in zip(folders, methods):
@@ -168,6 +185,9 @@ def combineJSONL(mainFolder, outputFolder, folders, methods, rtkgpsFolder=None, 
 
     if trim:
         outputArray = trimArray(outputArray)
+
+    if removeNulls:
+        outputArray = filterNulls(outputArray)
 
     if outputFolder:
         if os.path.exists(outputFolder):
@@ -222,5 +242,6 @@ if __name__ == "__main__":
         folders,
         methods,
         args.root + args.rtk if args.rtk else None,
-        not args.notrim)
+        not args.notrim,
+        args.filternulls)
     print("Done!")
