@@ -202,7 +202,19 @@ def readJsonl(folder):
                 if entry["sensor"]["type"] == "accelerometer":
                     acc.append(arr)
             elif entry.get("frames"):
-                frames[entry["number"]] = getNanoseconds(entry["time"])
+                if "number" in entry:
+                    number = entry["number"]
+                else:
+                    number = entry["frames"][0]["number"]
+                frames[number] = getNanoseconds(entry["time"])
+
+    # fix dropped frames
+    mapping = {}
+    for num in sorted(frames.keys()):
+        if num not in mapping:
+            mapping[num] = len(mapping)
+    mapped = { mapping[num]: frames[num] for num in frames.keys() }
+    frames = mapped
 
     accStartIndex = 0
     synced = []
