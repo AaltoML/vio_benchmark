@@ -174,12 +174,19 @@ def exportFrames(videoFile, outputFolder, nthframes, timestamps):
         .format(videoFile, nthframes, outputFolder)
     subprocess.run(cmd, shell=True)
     files = [f for f in os.listdir(outputFolder)]
-    for f in files:
+    anyExtra = False
+    for f in sorted(files):
         index = int(f.split("_")[1].split(".")[0])
         index = (index - 1) * nthframes
-        newFilename = str(timestamps[index]) + ".png"
-        os.rename(os.path.join(outputFolder, f), os.path.join(outputFolder, newFilename))
-
+        fpath = os.path.join(outputFolder, f)
+        if index in timestamps:
+            newFilename = str(timestamps[index]) + ".png"
+            os.rename(fpath, os.path.join(outputFolder, newFilename))
+            assert(not anyExtra) # extra frames at the end of the recording are OK
+        else:
+            anyExtra = True
+            print('WARNING: extra frame removed %s' % fpath)
+            os.remove(fpath)
 
 # Read acc+gyro and frame timestamps, convert time to nanoseconds
 def readJsonl(folder):
