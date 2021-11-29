@@ -152,7 +152,6 @@ def runDataset(args, datasetName, dataset, extraParameters=""):
     else:
         # `parse_args()` with list argument ignores `sys.argv`.
         runArgs = getArgParser().parse_args([])
-        runArgs.copyBinary = True
         runArgs.postprocess = False
         runArgs.postprocessWithInterpolation = False
         runArgs.logLevel = 0
