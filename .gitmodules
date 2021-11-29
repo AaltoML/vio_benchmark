@@ -10,3 +10,6 @@
 [submodule "larvio_runner/LARVIO"]
 	path = larvio_runner/LARVIO
 	url = https://github.com/PetWorm/LARVIO.git
+[submodule "hybvio_runner/HybVIO"]
+	path = hybvio_runner/HybVIO
+	url = https://github.com/SpectacularAI/HybVIO.git
