@@ -74,3 +74,7 @@ cd hybvio_runner
 python compute_paper_results.py tum
 python compute_paper_results.py --vislamEvalBin path/to/eval-vislam/bin sensetime
 ```
+
+## Reproducing ORB_SLAM3 results
+
+See `orbslam3_runner/README.md` in this repository. Using the runner on (EuRoC) data will produce an output folder with images of the position tracks, and a subfolder with the track coordinates in JSONL format.
