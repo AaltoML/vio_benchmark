@@ -7,10 +7,9 @@
 #
 # Usage:
 # * Download some datasets under the "Euroc/DSO 512x512" link from the above site.
-# * Extract the tarballs so that folders have names like "dataset-room1_512_16".
-# * List the short names in `DATASETS` variable.
-# * Set paths in `RAW` and `OUT` variables.
-# * Run `python scripts/convert/tum_vi_to_benchmark.py`.
+# * Extract the tarballs so that folders have paths like `data/raw/tum-vi/dataset-room1_512_16/`.
+# * List the short names of the downloaded datasets in `DATASETS` variable. (Comment out the ones you don't have).
+# * Run `python convert/tum_vi_to_benchmark.py`.
 
 import argparse
 import csv
@@ -24,7 +23,7 @@ RAW = "data/raw/tum-vi"
 OUT = "data/benchmark/tum-vi"
 
 # "room" (1-6) sets are the only ones with full ground truth.
-# "slides" (1-3) may be interesting for testing the inertial navigation.
+# "slides" (1-3) may be interesting because of little visual information inside the slides.
 # "corridor4" is reasonably short.
 DATASETS = [
     "room1",

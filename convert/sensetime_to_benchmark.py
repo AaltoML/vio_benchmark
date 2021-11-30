@@ -4,18 +4,18 @@
 #
 # The data uses similar format as EuRoC; compare the conversion scripts.
 #
-# First download the dataset zips (A0.zip, A1.zip, …) from the site (Google Drive is faster) into a folder.
-# Unzip while creating a folder for each dataset:
+# First download the dataset zips (A0.zip, A1.zip, …) from the site (Google Drive is faster)
+# into `data/benchmark/sensetime-raw/`. Unzip so that each archive becomes a folder (eg `data/benchmark/sensetime-raw/A0`):
 #
 #     for i in $(ls); do
-#     d=$(echo $i | cut -d'.' -f1)
-#     unzip $i -d $d
+#       d=$(echo $i | cut -d'.' -f1)
+#       unzip $i -d $d
 #     done
 
-# Assuming the downloaded data is at `data/benchmark/sensetime-raw/`, run
+# Then run:
 #
 #     cd data/benchmark
-#     ../../scripts/convert/sensetime_to_benchmark.py
+#     python ../../convert/sensetime_to_benchmark.py
 #
 # which creates `data/benchmark/sensetime/` with the processed data.
 
