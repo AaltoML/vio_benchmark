@@ -1,0 +1,12 @@
+{
+    "benchmarks": [
+        {"folder": "sensetime/A0"},
+        {"folder": "sensetime/A1"},
+        {"folder": "sensetime/A2"},
+        {"folder": "sensetime/A3"},
+        {"folder": "sensetime/A4"},
+        {"folder": "sensetime/A5"},
+        {"folder": "sensetime/A6"},
+        {"folder": "sensetime/A7"}
+    ]
+}

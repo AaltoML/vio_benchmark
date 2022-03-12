@@ -1,8 +1,10 @@
 # Odometry benchmark, see run.py -h for help
 
 import subprocess
+import pathlib
 import os
 import tempfile
+
 from benchmark.benchmark import benchmark, getArgParser
 from postprocessing import postprocessMergeSlamAndVioOutput, convertSlamOutput
 
@@ -32,12 +34,19 @@ def runBenchmark(args):
         else:
             vioOutFile = outputFile
 
-        subprocess.check_call(binary
-                + " -i=" + benchmark.dir
-                + " -o=" + vioOutFile
-                + " -slamMapPosesPath=" + slamMap
-                + " " + allFlags
-                + " > " + logFile + " 2>&1", shell=True)
+        cmd = (binary
+            + " -i=" + benchmark.dir
+            + " -o=" + vioOutFile
+            + " -slamMapPosesPath=" + slamMap
+            + " " + allFlags
+            + " > " + logFile + " 2>&1")
+        task = subprocess.Popen(cmd, shell=True, encoding="utf-8")
+        if task.wait() != 0 or not pathlib.Path(outputFile).exists():
+            print("---\nFailed running {}, printing VIO logs `{}`:".format(benchmark.dir, logFile))
+            with open(logFile, "r") as f:
+                for line in f: print("    " + line.strip())
+            print("---")
+            return False
 
         if args.postprocessWithInterpolation:
             postprocessMergeSlamAndVioOutput(vioOutFile, slamMap, outputFile)

@@ -1,0 +1,10 @@
+{
+    "benchmarks": [
+        {"folder": "tum-vi/room1"},
+        {"folder": "tum-vi/room2"},
+        {"folder": "tum-vi/room3"},
+        {"folder": "tum-vi/room4"},
+        {"folder": "tum-vi/room5"},
+        {"folder": "tum-vi/room6"}
+    ]
+}
