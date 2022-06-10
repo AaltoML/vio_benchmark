@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import subprocess
 import yaml
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-pretty", help="Prints human readable json", action="store_true")
@@ -36,9 +37,9 @@ DATASETS = [
 
 TO_SECONDS = 1000 * 1000 * 1000 # Timestamps are in nanoseconds
 
-def convertVideo(files, output):
+def convertVideo(files, output, fps):
     # Use `-crf 0` for lossless compression.
-    fps="20"
+    fps=str(fps)
     subprocess.run(["ffmpeg",
         "-y",
         "-r", fps,
@@ -130,11 +131,16 @@ def makeDataset(outputIn, tmpdir, name, t0, kind):
         number += 1
 
     # Video
+    with open("{}/mav0/cam0/sensor.yaml".format(tmpdir)) as f:
+        fps0 = yaml.load(f, Loader=yaml.FullLoader)["rate_hz"]
     if stereo:
-        convertVideo("{}/mav0/cam0/data/*.png".format(tmpdir), outputdir + "/data.mp4")
-        convertVideo("{}/mav0/cam1/data/*.png".format(tmpdir), outputdir + "/data2.mp4")
+        with open("{}/mav0/cam1/sensor.yaml".format(tmpdir)) as f:
+            fps1 = yaml.load(f, Loader=yaml.FullLoader)["rate_hz"]
+
+        convertVideo("{}/mav0/cam0/data/*.png".format(tmpdir), outputdir + "/data.mp4", fps0)
+        convertVideo("{}/mav0/cam1/data/*.png".format(tmpdir), outputdir + "/data2.mp4", fps1)
     else:
-        convertVideo("{}/mav0/{}/data/*.png".format(tmpdir, kind), outputdir + "/data.mp4")
+        convertVideo("{}/mav0/{}/data/*.png".format(tmpdir, kind), outputdir + "/data.mp4", fps0)
 
     # Reverse image name changes.
     if stereo:
@@ -168,12 +174,11 @@ def makeDataset(outputIn, tmpdir, name, t0, kind):
         open(tmpdir + '/mav0/cam0/sensor.yaml') as s0, \
         open(tmpdir + '/mav0/cam1/sensor.yaml') as s1:
 
-        # Inverses of sensor.yaml matrices, column-major.
-        m0 = "0.01486554298179427,-0.9998809296985752,0.004140296794224038,0.0,0.9995572490083462,0.01496721332471924,0.025715529947966016,0.0,-0.02577443669744028,0.0037561883579669726,0.9996607271779023,0.0,0.06522290953553112,-0.02070638549271943,-0.008054602460029517,1.0"
-        m1 = "0.012555267089102956,-0.9997550997231162,0.018223771455443325,0.0,0.999598781151433,0.013011905181503854,0.02515883631155237,0.0,-0.025389800891746528,0.01790058382525125,0.999517347077547,0.0,-0.04490198068250875,-0.020569771258915234,-0.008638135126028098,1.0"
-
         sensor0 = yaml.load(s0, Loader=yaml.FullLoader)
         sensor1 = yaml.load(s1, Loader=yaml.FullLoader)
+        # Inverses of sensor.yaml matrices, column-major.
+        m0 = ",".join(str(i) for i in np.linalg.inv(np.array(sensor0["T_BS"]["data"]).reshape((4,4))).T.reshape(16))
+        m1 = ",".join(str(i) for i in np.linalg.inv(np.array(sensor1["T_BS"]["data"]).reshape((4,4))).T.reshape(16))
         if stereo:
             i0 = sensor0["intrinsics"]
             i1 = sensor1["intrinsics"]
