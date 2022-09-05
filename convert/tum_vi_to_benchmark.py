@@ -6,8 +6,8 @@
 # The data uses similar format as EuRoC; compare the conversion scripts.
 #
 # Usage:
-# * Download some datasets under the "Euroc/DSO 512x512" link from the above site.
-# * Extract the tarballs so that folders have paths like `data/raw/tum-vi/dataset-room1_512_16/`.
+# * Download some datasets under the "Euroc/DSO 1024x1024" link from the above site.
+# * Extract the tarballs so that folders have paths like `data/raw/tum-vi/dataset-room1_1024_16/`.
 # * List the short names of the downloaded datasets in `DATASETS` variable. (Comment out the ones you don't have).
 # * Run `python convert/tum_vi_to_benchmark.py`.
 
@@ -38,7 +38,7 @@ DATASETS = [
     "corridor4",
 ]
 
-DATA_RESOLUTION = 512 # 512 or 1024 depending which raw data was downloaded
+DATA_RESOLUTION = 1024 # 512 or 1024 depending which raw data was downloaded
 
 parser = argparse.ArgumentParser()
 args = parser.parse_args()
