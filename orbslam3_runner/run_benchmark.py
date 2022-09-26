@@ -7,8 +7,8 @@ from benchmark.benchmark import benchmark, getArgParser
 def main():
     parser = getArgParser()
 
-    parser.add_argument("-vocab", help="ORB vocabulary file")
-    parser.add_argument("-config", help="Algorithm configuration file")
+    parser.add_argument("-vocab", help="ORB vocabulary file", required=True)
+    parser.add_argument("-config", help="Algorithm configuration file", required=True)
     args = parser.parse_args()
 
     def setupFn(args, outputDir):
