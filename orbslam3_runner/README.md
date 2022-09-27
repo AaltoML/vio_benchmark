@@ -42,6 +42,25 @@ python run_benchmark.py -set euroc \
 	-threads 1
 ```
 
+## Running in Docker
+
+Building the version of ORB_SLAM3 used in the HybVIO paper can be challenging due to required old library versions. A `Dockerfile` is included in this directory to help in the task. Rough usage guide follows.
+
+Build the image (once):
+```
+cd vio_benchmark/orbslam3_runner
+docker build -t orbslam3 .
+```
+
+Run an example benchmark:
+```
+cd vio_benchmark
+mkdir output
+docker run -v $(pwd)/data:/data -v $(pwd)/output:/vio_benchmark/orbslam3_runner/output -it orbslam3 bash docker_orbslam_run.sh
+```
+
+Finally, browse the output files and figures in the local `output/` directory.
+
 ## License
 
 Some files in this folder are copied/modified from ORB_SLAM3 and are licensed under GNU GENERAL PUBLIC LICENSE 3, see `ORB_SLAM3/LICENSE`.
